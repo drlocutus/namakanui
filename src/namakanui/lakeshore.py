@@ -94,6 +94,21 @@ class Lakeshore(object):
             self.s = socket.socket()
             self.s.settimeout(self.timeout)
             self.s.connect((self.ip, self.port))
+
+            # Set mode as CONTROLLER
+            self.s.sendall(b"++mode 1\n")
+            # Set HP33120A address
+            self.s.sendall(b"++addr 12\n")
+            # Turn off read-after-write to avoid "Query Unterminated" errors
+            self.s.sendall(b"++auto 0\n")
+            # Read timeout is 500 msec
+            self.s.sendall(b"++read_tmo_ms 500\n")
+            # Do not append CR or LF to GPIB data
+            self.s.sendall(b"++eos 3\n")
+            # Assert EOI with last byte to indicate end of data
+            self.s.sendall(b"++eoi 1\n")
+
+            _ = self.cmd('*CLS')
             idn = self.cmd('*IDN?')
             self.log.debug('Lakeshore IDN: %s', idn)
         
@@ -126,11 +141,13 @@ class Lakeshore(object):
         while select.select([self.s],[],[],0.0)[0]:
             self.s.recv(64)
         self.s.sendall(c + b'\r\n')
+        self.s.sendall(b"++read eoi\n")
         if b'?' not in c:
             return
         r = b''
         while b'\r\n' not in r:
             r += self.s.recv(64)
+        print(f'CMD: {c}; \tReturn: {r}')
         return r.strip().decode()  # convert to str
         # Lakeshore.cmd
         
