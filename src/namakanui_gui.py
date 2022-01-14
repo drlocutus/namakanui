@@ -155,9 +155,9 @@ def grid_label(parent, text, row, width=8, label=False):
     '''
     tk.Label(parent, text=text).grid(row=row, column=0, sticky='nw')
     return grid_value(parent, row=row, column=1, sticky='ne', width=width, label=label)
-    
 
-class CryoFrame(tk.Frame):
+
+class LakeshoreFrame(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
         self.master = master
@@ -165,37 +165,65 @@ class CryoFrame(tk.Frame):
     
     def setup(self):
         self.pack(fill='x')
-        self.edwards = grid_label(self, 'edwards', 0, label=True)
-        self.edwards.set('NO', False)
-        #self.edwards.bg('red')
-        #tk.Label(self, text='edwards').grid(row=0, column=0, sticky='nw')
-        #self.edwards = tk.Label(self, text="NO", bg='red')
-        #self.edwards.grid(row=0, column=1, sticky='ne')
-        tk.Label(self, text='lakeshore').grid(row=1, column=0, sticky='nw')
-        self.lakeshore = tk.Label(self, text="NO", bg='red')
-        self.lakeshore.grid(row=1, column=1, sticky='ne')
-        self.v_vacuum_unit = grid_value(self, 2, 0, 'nw', label=True)
-        self.v_vacuum_s1 = grid_value(self, 2, 1, 'ne')
+        self.connected = grid_label(self, 'connected', 0, label=True)
+        self.connected.set('NO', False)
+        self.v_number = grid_label(self, 'number', 1)
+        self.v_simulate = grid_label(self, 'simulate', 2)  # TODO sim_text as tooltip
         self.v_temp1 = grid_label(self, 'coldhead', 3)
         self.v_temp2 = grid_label(self, '4K', 4)
         self.v_temp3 = grid_label(self, '15K', 5)
         self.v_temp4 = grid_label(self, '90K', 6)
+        self.v_temp5 = grid_label(self, 'load', 7)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(6, weight=1)
+        self.grid_rowconfigure(7, weight=1)
     
-    def vacuum_changed(self, state):
-        #print(state)
-        #print(type(self.v_vacuum_unit))
-        #self.edwards['text'] = "YES"
-        #self.edwards['bg'] = 'green'
-        self.edwards.set("YES")
-        self.edwards.bg('green')
+    def mon_changed(self, state):
+        self.connected.set("YES")
+        self.connected.bg('green')
+        self.v_number.set('%d'%(state['number']))
+        self.v_simulate.set('0x%x'%(state['simulate']), state['simulate']==0)  # TODO tooltip
+        temp = state['temp']  # list
+        self.v_temp1.set('%.3f'%(temp[0]), 0.0 < temp[0] < 5.0)
+        self.v_temp2.set('%.3f'%(temp[1]), 0.0 < temp[1] < 5.0)
+        self.v_temp3.set('%.3f'%(temp[2]), 0.0 < temp[2] < 25.0)
+        self.v_temp4.set('%.3f'%(temp[3]), 0.0 < temp[3] < 115.0)
+        if len(temp) > 4:
+            self.v_temp5.set('%.3f'%(temp[4]), 0.0 < temp[4] < 374.0)
+    
+    # LakeshoreFrame
+
+
+class VacuumFrame(tk.Frame):
+    def __init__(self, master=None):
+        super().__init__(master)
+        self.master = master
+        self.setup()
+    
+    def setup(self):
+        self.pack(fill='x')
+        self.connected = grid_label(self, 'connected', 0, label=True)
+        self.connected.set('NO', False)
+        self.v_number = grid_label(self, 'number', 1)
+        self.v_simulate = grid_label(self, 'simulate', 2)  # TODO sim_text as tooltip
+        self.v_vacuum_unit = grid_value(self, 3, 0, 'nw', label=True)
+        self.v_vacuum_s1 = grid_value(self, 3, 1, 'ne')
+        self.v_vacuum_status = grid_label(self, 'vsensor', 4)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(4, weight=1)
+    
+    def mon_changed(self, state):
+        self.connected.set("YES")
+        self.connected.bg('green')
+        self.v_number.set('%d'%(state['number']))
+        self.v_simulate.set('0x%x'%(state['simulate']), state['simulate']==0)  # TODO tooltip
         pressure_unit = state['unit']
         if not pressure_unit or pressure_unit == 'none':
             pressure_unit = 'pressure'
         self.v_vacuum_unit.set(pressure_unit)
         self.v_vacuum_s1.set(state['s1'])
+        self.v_vacuum_status.set(state['status'], state['status'] == 'okay')
         try:
             s1 = float(state['s1'])
             if not 0.0 < s1 < 1e-6:
@@ -204,15 +232,40 @@ class CryoFrame(tk.Frame):
         except (ValueError, TypeError):
             self.v_vacuum_s1.bg('red')
     
-    def lakeshore_changed(self, state):
-        #print(state)
-        #print(type(self.v_temp1))
-        self.lakeshore['text'] = "YES"
-        self.lakeshore['bg'] = 'green'
-        self.v_temp1.set('%.3f'%(state['temp1']), 0.0 < state['temp1'] < 4.0)
-        self.v_temp2.set('%.3f'%(state['temp2']), 0.0 < state['temp2'] < 5.0)
-        self.v_temp3.set('%.3f'%(state['temp3']), 0.0 < state['temp3'] < 25.0)
-        self.v_temp4.set('%.3f'%(state['temp4']), 0.0 < state['temp4'] < 115.0)
+    # VacuumFrame
+
+
+class CompressorFrame(tk.Frame):
+    def __init__(self, master=None):
+        super().__init__(master)
+        self.master = master
+        self.setup()
+    
+    def setup(self):
+        self.pack(fill='x')
+        self.connected = grid_label(self, 'connected', 0, label=True)
+        self.connected.set('NO', False)
+        self.v_number = grid_label(self, 'number', 1)
+        self.v_simulate = grid_label(self, 'simulate', 2)  # TODO sim_text as tooltip
+        self.v_pressure_alarm = grid_label(self, 'pressure_alarm', 3)
+        self.v_temp_alarm = grid_label(self, 'temp_alarm', 4)
+        self.v_drive_operating = grid_label(self, 'drive_operating', 5)
+        self.v_main_power_sw = grid_label(self, 'main_power_sw', 6)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(6, weight=1)
+    
+    def mon_changed(self, state):
+        self.connected.set("YES")
+        self.connected.bg('green')
+        self.v_number.set('%d'%(state['number']))
+        self.v_simulate.set('0x%x'%(state['simulate']), state['simulate']==0)  # TODO tooltip
+        self.v_pressure_alarm.set(state['pressure_alarm'], state['pressure_alarm']==0)
+        self.v_temp_alarm.set(state['temp_alarm'], state['temp_alarm']==0)
+        self.v_drive_operating.set(state['drive_operating'], state['drive_operating'])
+        self.v_main_power_sw.set(state['main_power_sw'], state['main_power_sw'])
+    
+    # CompressorFrame
 
 
 class LoadFrame(tk.Frame):
@@ -403,15 +456,13 @@ class PhotonicsFrame(tk.Frame):
     # PhotonicsFrame
 
 
-class IFSwitchFrame(tk.Frame):
+class STSRFrame(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
         self.master = master
         self.setup()
     
     def setup(self):
-        # number simulate sim_text DO AI
-        # TODO: supply higher-level status so we don't have to guess
         self.pack(fill='x')
         status_frame = tk.Frame(self)
         status_frame.pack(fill='x')
@@ -420,11 +471,31 @@ class IFSwitchFrame(tk.Frame):
         self.connected.grid(row=0, column=1, sticky='ne')
         self.v_number = grid_label(status_frame, 'number', 1)
         self.v_simulate = grid_label(status_frame, 'simulate', 2)  # TODO sim_text as tooltip
-        self.v_do = grid_label(status_frame, 'DO', 3)
-        self.v_ai = grid_label(status_frame, 'AI', 4)
+        self.v_lo1_lock = grid_label(status_frame, 'lo1_lock', 3)
+        self.v_lo2_lock = grid_label(status_frame, 'lo2_lock', 4)
+        self.v_24vdc = grid_label(status_frame, '24vdc', 5)
+        self.v_12vdc = grid_label(status_frame, '12vdc', 6)
+        self.v_p5vdc = grid_label(status_frame, '+5vdc', 7)
+        self.v_n5vdc = grid_label(status_frame, '-5vdc', 8)
+        self.v_fan1 = grid_label(status_frame, 'fan1', 9)
+        self.v_fan2 = grid_label(status_frame, 'fan2', 10)
+        self.v_sw1_degc = grid_label(status_frame, 'sw1_degC', 11)
+        self.v_sw2_degc = grid_label(status_frame, 'sw2_degC', 12)
+        self.v_sw3_degc = grid_label(status_frame, 'sw3_degC', 13)
+        self.v_sw4_degc = grid_label(status_frame, 'sw4_degC', 14)
+        self.v_pa1_degc = grid_label(status_frame, 'pa1_degC', 15)
+        self.v_pa2_degc = grid_label(status_frame, 'pa2_degC', 16)
+        self.v_lo1_degc = grid_label(status_frame, 'lo1_degC', 17)
+        self.v_5056 = grid_label(status_frame, '5056_DO', 18)
+        self.v_sw1_ch = grid_label(status_frame, 'sw1', 19)
+        self.v_sw2_ch = grid_label(status_frame, 'sw2', 20)
+        self.v_sw3_ch = grid_label(status_frame, 'sw3', 21)
+        self.v_sw4_ch = grid_label(status_frame, 'sw4', 22)
+        self.v_sw5_ch = grid_label(status_frame, 'sw5', 23)
+        self.v_band = grid_label(status_frame, 'band', 24)
         status_frame.grid_columnconfigure(0, weight=1)
         status_frame.grid_columnconfigure(1, weight=1)
-        status_frame.grid_rowconfigure(4, weight=1)
+        status_frame.grid_rowconfigure(24, weight=1)
         cmd_frame = tk.Frame(self)
         cmd_frame.pack(side='right')
         tk.Label(cmd_frame, text='Band: ').pack(side='left')
@@ -446,12 +517,33 @@ class IFSwitchFrame(tk.Frame):
         self.connected['bg'] = 'green'
         self.v_number.set('%d'%(state['number']))
         self.v_simulate.set('0x%x'%(state['simulate']), state['simulate']==0)  # TODO tooltip
-        do = ''.join([str(x) for x in state['DO']])
-        okay = do in ('100100', '010010', '001001')
-        self.v_do.set(do, okay)
-        self.v_ai.set('%.3f'%(state['AI'][0]), 4.0 < state['AI'][0] < 6.0)
+        ai = state['5017']
+        self.v_lo1_lock.set('%.3f'%(ai[0]), 4.0 < ai[0] < 6.0)  # 4.8
+        self.v_lo2_lock.set('%.3f'%(ai[1]), 2.4 < ai[1] < 4.0)  # 3.2
+        self.v_24vdc.set('%.3f'%(ai[2]), 9.2 < ai[2] < 10.0)  # 9.6
+        self.v_12vdc.set('%.3f'%(ai[3]), 4.6 < ai[3] < 5.0)   # 4.8
+        self.v_p5vdc.set('%.3f'%(ai[4]), 1.8 < ai[4] < 2.2)    # +2.0
+        self.v_n5vdc.set('%.3f'%(ai[5]), -2.2 < ai[5] < -1.8)  # -2.0
+        self.v_fan1.set('%.3f'%(ai[6]))
+        self.v_fan2.set('%.3f'%(ai[7]))
+        ai = state['5018']
+        self.v_sw1_degc.set('%.1f'%(ai[0]), -10.0 < ai[0] < 40.0)
+        self.v_sw2_degc.set('%.1f'%(ai[1]), -10.0 < ai[1] < 40.0)
+        self.v_sw3_degc.set('%.1f'%(ai[2]), -10.0 < ai[2] < 40.0)
+        self.v_sw4_degc.set('%.1f'%(ai[3]), -10.0 < ai[3] < 40.0)
+        self.v_pa1_degc.set('%.1f'%(ai[4]), -10.0 < ai[4] < 40.0)
+        self.v_pa2_degc.set('%.1f'%(ai[5]), -10.0 < ai[5] < 40.0)
+        self.v_lo1_degc.set('%.1f'%(ai[6]), -10.0 < ai[6] < 40.0)
+        do = ''.join([str(x) for x in state['5056']])
+        self.v_5056.set(do)
+        self.v_sw1_ch.set(state['sw1'])
+        self.v_sw2_ch.set(state['sw2'])
+        self.v_sw3_ch.set(state['sw3'])
+        self.v_sw4_ch.set(state['sw4'])
+        self.v_sw5_ch.set(state['sw5'])
+        self.band.set(str(state['band']), state['band'] in [3,6,7])
     
-    # IFSwitchFrame
+    # STSRFrame
         
 
 class BandFrame(tk.Frame):
@@ -818,8 +910,9 @@ class App(tk.Frame):
         self.retry_load_table = drama.retry.RetryMonitor(namakanui_taskname, 'LOAD_TABLE')
         self.retry_reference = drama.retry.RetryMonitor(namakanui_taskname, 'REFERENCE')
         self.retry_photonics = drama.retry.RetryMonitor(namakanui_taskname, 'PHOTONICS')
-        self.retry_ifswitch = drama.retry.RetryMonitor(namakanui_taskname, 'IFSWITCH')
+        self.retry_stsr = drama.retry.RetryMonitor(namakanui_taskname, 'STSR')
         self.retry_vacuum = drama.retry.RetryMonitor(namakanui_taskname, 'VACUUM')
+        self.retry_compressor = drama.retry.RetryMonitor(namakanui_taskname, 'COMPRESSOR')
         self.retry_lakeshore = drama.retry.RetryMonitor(namakanui_taskname, 'LAKESHORE')
         self.retry_b3 = drama.retry.RetryMonitor(namakanui_taskname, 'BAND3')
         self.retry_b6 = drama.retry.RetryMonitor(namakanui_taskname, 'BAND6')
@@ -839,17 +932,32 @@ class App(tk.Frame):
         tk.Label(task_frame, text=' ').pack(side='left')  # spacer
         c0 = tk.Frame(task_frame)
         c1 = tk.Frame(task_frame)
+        c2 = tk.Frame(task_frame)
         c0.pack(side='left', fill='y')
         tk.Label(task_frame, text=' ').pack(side='left')  # spacer
         c1.pack(side='left', fill='y')
+        tk.Label(task_frame, text=' ').pack(side='left')  # spacer
+        c2.pack(side='left', fill='y')
         
         # NAMAKANUI task frame
         #nam_frame = tk.Frame(task_frame)
         #nam_frame.pack(side='left', fill='y')
         
-        cryo_parent = tk.LabelFrame(c0, text='CRYO')
-        cryo_parent.pack(fill='x')
-        self.cryo_frame = CryoFrame(cryo_parent)
+        vacuum_parent = tk.LabelFrame(c0, text='VACUUM')
+        vacuum_parent.pack(fill='x')
+        self.vacuum_frame = VacuumFrame(vacuum_parent)
+        
+        tk.Label(c0, text=' ').pack()  # spacer
+        
+        compressor_parent = tk.LabelFrame(c0, text='COMPRESSOR')
+        compressor_parent.pack(fill='x')
+        self.compressor_frame = CompressorFrame(compressor_parent)
+        
+        tk.Label(c0, text=' ').pack()  # spacer
+        
+        lakeshore_parent = tk.LabelFrame(c0, text='LAKESHORE')
+        lakeshore_parent.pack(fill='x')
+        self.lakeshore_frame = LakeshoreFrame(lakeshore_parent)
         
         tk.Label(c0, text=' ').pack()  # spacer
         
@@ -867,11 +975,11 @@ class App(tk.Frame):
         photonics_parent.pack(fill='x')
         self.photonics_frame = PhotonicsFrame(photonics_parent)
         
-        tk.Label(c1, text=' ').pack()  # spacer
+        #tk.Label(c1, text=' ').pack()  # spacer
         
-        ifswitch_parent = tk.LabelFrame(c1, text='IFSWITCH')
-        ifswitch_parent.pack(fill='x')
-        self.ifswitch_frame = IFSwitchFrame(ifswitch_parent)
+        stsr_parent = tk.LabelFrame(c2, text='STSR')
+        stsr_parent.pack(fill='x')
+        self.stsr_frame = STSRFrame(stsr_parent)
         
         tk.Label(task_frame, text=' ').pack(side='left')  # spacer
         
@@ -937,10 +1045,13 @@ class App(tk.Frame):
                 pass  # for other errors, handle() as usual
         
         if updating and self.retry_vacuum.handle(msg):
-            self.cryo_frame.vacuum_changed(msg.arg)
+            self.vacuum_frame.mon_changed(msg.arg)
+        
+        if updating and self.retry_compressor.handle(msg):
+            self.compressor_frame.mon_changed(msg.arg)
         
         if updating and self.retry_lakeshore.handle(msg):
-            self.cryo_frame.lakeshore_changed(msg.arg)
+            self.lakeshore_frame.mon_changed(msg.arg)
         
         if updating and self.retry_load.handle(msg):
             self.load_frame.mon_changed(msg.arg)
@@ -954,16 +1065,19 @@ class App(tk.Frame):
         if updating and self.retry_photonics.handle(msg):
             self.photonics_frame.mon_changed(msg.arg)
         
-        if updating and self.retry_ifswitch.handle(msg):
-            self.ifswitch_frame.mon_changed(msg.arg)
+        if updating and self.retry_stsr.handle(msg):
+            self.stsr_frame.mon_changed(msg.arg)
             
         # set disconnected indicators on all frames
         if not updating or not self.retry_vacuum.connected:
-            self.cryo_frame.edwards['text'] = "NO"
-            self.cryo_frame.edwards['bg'] = 'red'
+            self.vacuum_frame.connected['text'] = "NO"
+            self.vacuum_frame.connected['bg'] = 'red'
+        if not updating or not self.retry_compressor.connected:
+            self.compressor_frame.connected['text'] = "NO"
+            self.compressor_frame.connected['bg'] = 'red'
         if not updating or not self.retry_lakeshore.connected:
-            self.cryo_frame.lakeshore['text'] = "NO"
-            self.cryo_frame.lakeshore['bg'] = 'red'
+            self.lakeshore_frame.connected['text'] = "NO"
+            self.lakeshore_frame.connected['bg'] = 'red'
         if not updating or not self.retry_load.connected:
             self.load_frame.connected['text'] = "NO"
             self.load_frame.connected['bg'] = 'red'
@@ -973,9 +1087,9 @@ class App(tk.Frame):
         if not updating or not self.retry_photonics.connected:
             self.photonics_frame.connected['text'] = "NO"
             self.photonics_frame.connected['bg'] = 'red'
-        if not updating or not self.retry_ifswitch.connected:
-            self.ifswitch_frame.connected['text'] = "NO"
-            self.ifswitch_frame.connected['bg'] = 'red'
+        if not updating or not self.retry_stsr.connected:
+            self.stsr_frame.connected['text'] = "NO"
+            self.stsr_frame.connected['bg'] = 'red'
         
         drama.reschedule(10.0)
         
@@ -1214,9 +1328,9 @@ class App(tk.Frame):
     def SET_BAND(self, msg):
         args,kwargs = drama.parse_argument(msg.arg)
         band = self.band_args(*args,**kwargs)
-        self.ifswitch_frame.b3_button['state'] = 'disabled'
-        self.ifswitch_frame.b6_button['state'] = 'disabled'
-        self.ifswitch_frame.b7_button['state'] = 'disabled'
+        self.stsr_frame.b3_button['state'] = 'disabled'
+        self.stsr_frame.b6_button['state'] = 'disabled'
+        self.stsr_frame.b7_button['state'] = 'disabled'
         try:
             drama.interested()
             tid = drama.obey(namakanui_taskname, "SET_BAND", band=band)
@@ -1225,9 +1339,9 @@ class App(tk.Frame):
             log.exception('exception in SET_BAND')
             raise
         finally:
-            self.ifswitch_frame.b3_button['state'] = 'normal'
-            self.ifswitch_frame.b6_button['state'] = 'normal'
-            self.ifswitch_frame.b7_button['state'] = 'normal'
+            self.stsr_frame.b3_button['state'] = 'normal'
+            self.stsr_frame.b6_button['state'] = 'normal'
+            self.stsr_frame.b7_button['state'] = 'normal'
         # App.SET_BAND
     
     def MSG_TEST(self, msg):
