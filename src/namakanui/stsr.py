@@ -172,7 +172,7 @@ class STSR(object):
         if self.simulate:
             self.state['5056'] = DO
         else:
-            self.adam5000.set_do_data(self.slot_index('5056'), DO)
+            self.adam5000.set_do_data(self.slot_index['5056'], DO)
         
         # double-check digital outputs
         self.update()
