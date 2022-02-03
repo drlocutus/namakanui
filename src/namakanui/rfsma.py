@@ -51,7 +51,7 @@ import time
 import adam.adam5000
 
 
-class RFSMA(object)
+class RFSMA(object):
     '''
     RF Switch Matrix Assembly control class.
     '''

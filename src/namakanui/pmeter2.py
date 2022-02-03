@@ -170,8 +170,8 @@ class PMeter2(object):
         self.log.debug('read_init(%s)', ch)
         ch = self.get_channel_list(ch)
         for i in ch:
-            self.s.send(b'abort%d\n'%(%i))
-            self.s.send(b'init%d\n'%(%i))
+            self.s.send(b'abort%d\n'%(i))
+            self.s.send(b'init%d\n'%(i))
         # PMeter2.read_init
     
     
