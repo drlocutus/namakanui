@@ -65,9 +65,9 @@ rfsma_a17.set_pmeter_49()
 rfsma_a14.set_DO('5056_s2', [1], 14)  # S15
 rfsma_a14.set_DO('5056_s3', [0,0,1,0], 12)  # S20
 
-p[0].set_ghz(6.5)
-p[1].set_ghz(0.0315, ch=2)
-p[2].set_ghz(6.5)
+pmeters[0].set_ghz(6.5)
+pmeters[1].set_ghz(0.0315, ch=2)
+pmeters[2].set_ghz(6.5)
 
 # test parallel power reads, might be slightly faster
 for p in pmeters:
