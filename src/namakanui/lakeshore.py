@@ -108,10 +108,12 @@ class Lakeshore(object):
     def cmd(self, c):
         '''Send cmd c. If "?" in c, the last reply will be repeated because of GPIB buffer.'''
         self.log.debug('cmd(%s)', c)
+
         c = c.strip()
         if hasattr(c, 'encode'):
             c = c.encode()  # convert to bytes
 
+        # reconnect every time since Lakeshore disconnects us too quickly
         self.log.debug('connecting Lakeshore, %s:%d', self.ip, self.port)
         s = socket.socket()
         s.settimeout(self.timeout)
@@ -129,13 +131,19 @@ class Lakeshore(object):
             s.sendall(b'++eos 3\n')
             # Assert EOI with last byte to indicate end of data
             s.sendall(b'++eoi 1\n')
+
         s.sendall(c + b'\r\n')
+
+        # always read reply since we set ++auto 1,
+        # but if this cmd was not a query it will be junk
         r = b''
         while b'\r\n' not in r:
             r += s.recv(4096)
+
         self.log.debug('close')
         s.close()
         self.log.debug('cmd: %s; reply: %s', c, r)
-        return r.strip().decode()  # convert to str
+        if b'?' in c:
+            return r.strip().decode()  # convert to str
         # Lakeshore.cmd
 
