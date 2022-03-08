@@ -22,7 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from namakanui.ini import *
 from namakanui import sim
-import namakanui.util
+import namakanui
 import socket
 import logging
 import time
