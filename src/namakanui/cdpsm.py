@@ -204,14 +204,14 @@ class CDPSM(object):
         '''
         self.log.debug('set_sw3(%s)', pol)
         
-        if hasattr(src, 'upper'):
-            src = src.upper()
+        if hasattr(pol, 'upper'):
+            pol = pol.upper()
         else:
-            src = int(src)
-        src = {0:0, '0':0, 'POL0':0, 'LHC':0,
-               1:1, '1':1, 'POL1':1, 'RHC':1}[src]
+            pol = int(pol)
+        pol = {0:0, '0':0, 'POL0':0, 'LHC':0,
+               1:1, '1':1, 'POL1':1, 'RHC':1}[pol]
         
-        self.set_DO('5056', [src], 2)
+        self.set_DO('5056', [pol], 2)
         # CDPSM.set_sw3
     
     
@@ -264,4 +264,5 @@ class CDPSM(object):
          - 6 == 7 == 230 == 345
         '''
         self.set_sw456(band)
+
 
