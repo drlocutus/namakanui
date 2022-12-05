@@ -23,7 +23,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import namakanui
 from namakanui.ini import *
 from namakanui import sim
-import namakanui
 import socket
 import logging
 import time
@@ -164,7 +163,7 @@ class PMeter2(object):
     
     def read_init(self, ch=None):
         '''
-        Send abort+init commands for given ch to start a reading.
+        Send abort+init commands for given ch to commence a measurement.
         This command should be followed by read_fetch to get the value(s).
         The optional ch argument can be in 1,2 or A,B.
         If ch not given, init reading for both channels.
@@ -184,7 +183,7 @@ class PMeter2(object):
         The optional ch argument can be in 1,2 or A,B.
         If ch not given, get reading for both channels and return as list.
         '''
-        self.log.debug('read_init(%s)', ch)
+        self.log.debug('read_fetch(%s)', ch)
         ch = self.get_channel_list(ch)
         p = [0.0, 0.0]
         for i in ch:
