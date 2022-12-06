@@ -26,7 +26,6 @@ import namakanui.rfsma
 import namakanui.pmeter2
 import namakanui.util
 import namakanui.sim as sim
-import time
 import argparse
 import pprint
 
@@ -58,16 +57,16 @@ log_states('initial states')
 
 logging.info('reading power for IF 4-9 GHz + FLOOG.')
 
-rfsma_a14.set_pmeter_49()
-rfsma_a17.set_pmeter_49()
+rfsma_a14.set_pmeter_49()   # pm1.chA/B
+rfsma_a17.set_pmeter_49()   # pm3.chA/B
 
 # floog setting, read J15 on rfsma_p2.chB
-rfsma_a14.set_DO('5056_s2', [1], 14)  # S15
-rfsma_a14.set_DO('5056_s3', [0,0,1,0], 12)  # S20
+rfsma_a14.set_DO('5056_s2', [1], 14)  # SW15
+rfsma_a14.set_DO('5056_s3', [0,0,1,0], 12)  # SW20
 
-pmeters[0].set_ghz(6.5)
+pmeters[0].set_ghz(6.5)     # centered in 4-9 GHz
 pmeters[1].set_ghz(0.0315, ch=2)
-pmeters[2].set_ghz(6.5)
+pmeters[2].set_ghz(6.5)     # centered in 4-9 GHz
 
 # test parallel power reads, might be slightly faster
 for p in pmeters:
@@ -83,4 +82,3 @@ log_states('IF 4-9 GHz + FLOOG states')
 # TODO: test additional switch settings and power readings
 
 logging.info('done.')
-

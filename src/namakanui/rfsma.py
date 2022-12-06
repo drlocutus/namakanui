@@ -46,7 +46,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import namakanui
 from namakanui.ini import *
 from namakanui import sim
-import namakanui
 import socket
 import logging
 import time
@@ -167,10 +166,16 @@ class RFSMA(object):
         into the current state starting at the given index (which can limit
         the change to a single switch in a bank, if desired).  Examples:
         
-        set_DO('5056_s2', [0]*16)  # set S1-16 to spectrum analyzer outputs
-        set_DO('5056_s2', [1]*16)  # set S1-16 to power meter outputs
-        set_DO('5056_s3', [1,0,0,0]*2)  # set S17-18 to IF 4-9 GHz
-        set_DO('5056_s5', [1,0]*2, 4)  # set S26-27 to send J18 to spectr
+        set_DO('5056_s2', [0]*16)  # set SW1-16 to spectrum analyzer outputs
+        set_DO('5056_s2', [1]*16)  # set SW1-16 to power meter outputs
+        set_DO('5056_s3', [1,0,0,0]*2)  # set SW17-18 to IF 4-9 GHz
+        set_DO('5056_s5', [1,0]*2, 4)  # set SW26-27 to send J18 to spectr
+
+        s2: SW1-16, 2-positions switch, unique bit of '1' (1-to-1 mapping)
+        s3: SW17-20, 4-positions switch, unique bit of '1' (1-to-1 mapping)
+        s4: SW21-24, 4-positions switch, unique bit of '1' (1-to-1 mapping)
+        s5: SW25, 26, 27, 4-positions switch where SW25 is 1-to-1, but 
+            SW26 & 27 each uses full 2-bits.
         '''
         self.log.debug('set_DO(%s, %s, %s)', slot_name, DO, index)
         
@@ -194,12 +199,12 @@ class RFSMA(object):
     
     def set_pmeter_49(self):
         '''
-        Send J1/J5 (P0/P1 IF 4-9 GHz) to power meter #1 ch A/B.
+        If for A14, send J1/J5 (Pol 0/1 IF 4-9 GHz) to power meter #1 ch A/B.
         Only sets S1, S5, S17, S18, leaving all others unchanged.
         '''
         self.log.debug('set_pmeter_49')
-        self.set_DO('5056_s2', [1], 0)  # S1
-        self.set_DO('5056_s2', [1], 4)  # S5
-        self.set_DO('5056_s3', [1,0,0,0]*2)  # S17-18
+        self.set_DO('5056_s2', [1], 0)  # SW1
+        self.set_DO('5056_s2', [1], 4)  # SW5
+        self.set_DO('5056_s3', [1,0,0,0]*2)  # SW17-18
     
     
