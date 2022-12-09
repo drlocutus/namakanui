@@ -108,13 +108,18 @@ class PMeter2(object):
             self.s.send(b'*cls\n')  # clear errors
             self.s.send(b'*rst\n')  # reset
             for i in [1,2]:
-                # configure channel i:
-                # default range, 3 significant digits,
-                # continuous mode off, trigger source immediate,
-                # auto trigger delay, auto averaging.
+                '''
+                configure channel i: for initialization
+                default range, resolution=1 dB, source channel,
+                unit=dBm, measurement rate=normal (default actually);
+                Averaging must be off to prevent timeout at low powers.
+                * Other defaults: continuous (free run) mode off, trigger source 
+                immediate, trigger delay auto. 
+                '''
                 self.s.send(b'conf%d DEF,3,(@%d)\n'%(i,i))
-                self.s.send(b'unit%d:power dbm\n'%(i))  # dBm readings
-                self.s.send(b'sens%d:mrate normal\n'%(i))  # 20 reads/sec
+                self.s.send(b'unit%d:power dbm\n'%(i))      # dBm readings
+                self.s.send(b'sens%d:mrate normal\n'%(i))   # 20 reads/sec
+                self.s.send(b'sens%d:aver:count 1\n'%(i))   # averaging off
             
             self.s.send(b'syst:err?\n')
             err = self.s.recv(256)
@@ -124,6 +129,9 @@ class PMeter2(object):
             self.close()
             raise
         self.update()
+        # re-configure for real measurements:
+        for i in [1,2]:
+            self.s.send(b'sens%d:aver:count:auto on\n'%(i)) # re-enable averaging
         # PMeter2.initialise
     
     
@@ -224,4 +232,3 @@ class PMeter2(object):
             self.state['ghz'][i-1] = ghz
         
         # PMeter2.set_ghz
-
