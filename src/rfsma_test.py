@@ -68,12 +68,9 @@ pmeters[0].set_ghz(6.5)     # centered in 4-9 GHz
 pmeters[1].set_ghz(0.0315, ch=2)
 pmeters[2].set_ghz(6.5)     # centered in 4-9 GHz
 
-# test parallel power reads, might be slightly faster
+# test parallel power reads     ####TODO: Using threading/asyncio to speed up
 for p in pmeters:
-    p.read_init()
-
-for p in pmeters:
-    plist = p.read_fetch()
+    plist = p.read_power()
     p.state['power'] = plist  # for log_states
 
 logging.info('')

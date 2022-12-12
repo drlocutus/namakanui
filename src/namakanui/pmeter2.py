@@ -109,17 +109,15 @@ class PMeter2(object):
             self.s.send(b'*rst\n')  # reset
             for i in [1,2]:
                 '''
-                configure channel i: for initialization
+                configure channel i:
                 default range, resolution=1 dB, source channel,
-                unit=dBm, measurement rate=normal (default actually);
-                Averaging must be off to prevent timeout at low powers.
+                unit=dBm, measurement rate=normal (default actually).
                 * Other defaults: continuous (free run) mode off, trigger source 
-                immediate, trigger delay auto. 
+                immediate, trigger delay auto, averaging auto. 
                 '''
                 self.s.send(b'conf%d DEF,3,(@%d)\n'%(i,i))
                 self.s.send(b'unit%d:power dbm\n'%(i))      # dBm readings
                 self.s.send(b'sens%d:mrate normal\n'%(i))   # 20 reads/sec
-                self.s.send(b'sens%d:aver:count 1\n'%(i))   # averaging off
             
             self.s.send(b'syst:err?\n')
             err = self.s.recv(256)
@@ -128,10 +126,7 @@ class PMeter2(object):
         except:
             self.close()
             raise
-        self.update()
-        # re-configure for real measurements:
-        for i in [1,2]:
-            self.s.send(b'sens%d:aver:count:auto on\n'%(i)) # re-enable averaging
+        self.update()      
         # PMeter2.initialise
     
     
@@ -169,41 +164,6 @@ class PMeter2(object):
         # PMeter2.get_ch_list
     
     
-    def read_init(self, ch=None):
-        '''
-        Send abort+init commands for given ch to commence a measurement.
-        This command should be followed by read_fetch to get the value(s).
-        The optional ch argument can be in 1,2 or A,B.
-        If ch not given, init reading for both channels.
-        '''
-        self.log.debug('read_init(%s)', ch)
-        ch = self.get_channel_list(ch)
-        for i in ch:
-            self.s.send(b'abort%d\n'%(i))
-            self.s.send(b'init%d\n'%(i))
-        # PMeter2.read_init
-    
-    
-    def read_fetch(self, ch=None):
-        '''
-        Send fetch comamnd for given ch to retrieve a reading value.
-        This command should follow a call to read_init.
-        The optional ch argument can be in 1,2 or A,B.
-        If ch not given, get reading for both channels and return as list.
-        '''
-        self.log.debug('read_fetch(%s)', ch)
-        ch = self.get_channel_list(ch)
-        p = [0.0, 0.0]
-        for i in ch:
-            self.s.send(b'fetch%d?\n'%(i))
-            p[i-1] = float(self.s.recv(256))
-        if len(ch) > 1:
-            return p
-        else:
-            return p[ch[0]-1]
-        # PMeter2.read_fetch
-    
-    
     def read_power(self, ch=None):
         '''
         Read and return power for given ch (read_init + read_fetch).
@@ -211,8 +171,25 @@ class PMeter2(object):
         If ch not given, read both channels and return as list.
         '''
         self.log.debug('read_power(%s)', ch)
-        self.read_init(ch)
-        return self.read_fetch(ch)
+        #self.read_init(ch)
+        ch = self.get_channel_list(ch)
+        p = [0.0, 0.0]
+        for i in ch:    ####TODO: concurrent reading?
+            try:
+                self.s.send(b'abort%d\n'%(i))
+                self.s.send(b'read%d?\n'%(i))   # read = init + fetch
+                p[i-1] = float(self.s.recv(256))
+            except socket.timeout:
+                self.s.send(b'abort%d\n'%(i))
+                self.s.send(b'sens%d:aver:count 8\n'%(i))   # reduce averaging to prevent timeout at low powers.
+                self.s.send(b'read%d?\n'%(i))   # read = init + fetch
+                p[i-1] = float(self.s.recv(256))
+                self.s.send(b'sens%d:aver:count:auto on\n'%(i)) # re-enable auto averaging
+
+        if len(ch) > 1:
+            return p
+        else:
+            return p[ch[0]-1]
         # PMeter2.read_power
     
     
