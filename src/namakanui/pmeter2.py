@@ -174,12 +174,16 @@ class PMeter2(object):
         #self.read_init(ch)
         ch = self.get_channel_list(ch)
         p = [0.0, 0.0]
-        for i in ch:    ####TODO: concurrent reading?
+        for i in ch:    ####TODO: concurrent reading? but timeout will destory the existing socket...
             try:
                 self.s.send(b'abort%d\n'%(i))
                 self.s.send(b'read%d?\n'%(i))   # read = init + fetch
                 p[i-1] = float(self.s.recv(256))
-            except socket.timeout:
+            except socket.timeout:      # the socket will be DEAD!
+                self.s.close()
+                self.s = socket.socket()
+                self.s.settimeout(self.timeout)
+                self.s.connect((self.ip, self.port))
                 self.s.send(b'abort%d\n'%(i))
                 self.s.send(b'sens%d:aver:count 8\n'%(i))   # reduce averaging to prevent timeout at low powers.
                 self.s.send(b'read%d?\n'%(i))   # read = init + fetch
@@ -206,6 +210,5 @@ class PMeter2(object):
         
         for i in ch:
             self.s.send(b'sens%d:freq %gGHz\n'%(i, ghz))
-            self.state['ghz'][i-1] = ghz
-        
+            self.state['ghz'][i-1] = ghz        
         # PMeter2.set_ghz
