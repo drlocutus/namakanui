@@ -180,6 +180,7 @@ class PMeter2(object):
                 self.s.send(b'read%d?\n'%(i))   # read = init + fetch
                 p[i-1] = float(self.s.recv(256))
             except socket.timeout:      # the socket will be DEAD!
+                self.log.debug('timeout when reading ch %d; re-establish connection', i)
                 self.s.close()
                 self.s = socket.socket()
                 self.s.settimeout(self.timeout)
