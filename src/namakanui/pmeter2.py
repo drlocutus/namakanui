@@ -100,13 +100,13 @@ class PMeter2(object):
             self.s.settimeout(self.timeout)
             self.s.connect((self.ip, self.port))
             
-            self.s.send(b'*idn?\n')
+            self.s.sendall(b'*idn?\n')
             self.idn = self.s.recv(256).decode().strip()
             if 'N1914' not in self.idn:
                 raise RuntimeError(f'expected power meter model N1914A, but got {self.idn}')
             
-            self.s.send(b'*cls\n')  # clear errors
-            self.s.send(b'*rst\n')  # reset
+            self.s.sendall(b'*cls\n')  # clear errors
+            self.s.sendall(b'*rst\n')  # reset
             for i in [1,2]:
                 '''
                 configure channel i:
@@ -115,11 +115,11 @@ class PMeter2(object):
                 * Other defaults: continuous (free run) mode off, trigger source 
                 immediate, trigger delay auto, averaging auto. 
                 '''
-                self.s.send(b'conf%d DEF,3,(@%d)\n'%(i,i))
-                self.s.send(b'unit%d:power dbm\n'%(i))      # dBm readings
-                self.s.send(b'sens%d:mrate normal\n'%(i))   # 20 reads/sec
+                self.s.sendall(b'conf%d DEF,3,(@%d)\n'%(i,i))
+                self.s.sendall(b'unit%d:power dbm\n'%(i))      # dBm readings
+                self.s.sendall(b'sens%d:mrate normal\n'%(i))   # 20 reads/sec
             
-            self.s.send(b'syst:err?\n')
+            self.s.sendall(b'syst:err?\n')
             err = self.s.recv(256)
             if not err.startswith(b'+0,"No error"'):
                 raise RuntimeError(f'power meter N1914A setup failure: {err}')
@@ -176,8 +176,8 @@ class PMeter2(object):
         p = [0.0, 0.0]
         for i in ch:    ####TODO: concurrent reading? but timeout will destory the existing socket...
             try:
-                self.s.send(b'abort%d\n'%(i))
-                self.s.send(b'read%d?\n'%(i))   # read = init + fetch
+                self.s.sendall(b'abort%d\n'%(i))
+                self.s.sendall(b'read%d?\n'%(i))   # read = init + fetch
                 p[i-1] = float(self.s.recv(256))
             except socket.timeout:      # the socket will be DEAD!
                 self.log.debug('timeout when reading ch %d; re-establish connection', i)
@@ -185,11 +185,11 @@ class PMeter2(object):
                 self.s = socket.socket()
                 self.s.settimeout(self.timeout)
                 self.s.connect((self.ip, self.port))
-                self.s.send(b'abort%d\n'%(i))
-                self.s.send(b'sens%d:aver:count 8\n'%(i))   # reduce averaging to prevent timeout at low powers.
-                self.s.send(b'read%d?\n'%(i))   # read = init + fetch
+                self.s.sendall(b'abort%d\n'%(i))
+                self.s.sendall(b'sens%d:aver:count 8\n'%(i))   # reduce averaging to prevent timeout at low powers.
+                self.s.sendall(b'read%d?\n'%(i))   # read = init + fetch
                 p[i-1] = float(self.s.recv(256))
-                self.s.send(b'sens%d:aver:count:auto on\n'%(i)) # re-enable auto averaging
+                self.s.sendall(b'sens%d:aver:count:auto on\n'%(i)) # re-enable auto averaging
 
         if len(ch) > 1:
             return p
@@ -210,6 +210,6 @@ class PMeter2(object):
         ch = self.get_channel_list(ch)
         
         for i in ch:
-            self.s.send(b'sens%d:freq %gGHz\n'%(i, ghz))
+            self.s.sendall(b'sens%d:freq %gGHz\n'%(i, ghz))
             self.state['ghz'][i-1] = ghz        
         # PMeter2.set_ghz
