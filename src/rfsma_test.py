@@ -70,8 +70,9 @@ pmeters[2].set_ghz(6.5)     # centered in 4-9 GHz
 
 # test parallel power reads     ####TODO: Using threading/asyncio to speed up
 for p in pmeters:
-    plist = p.read_power()
-    p.state['power'] = plist  # for log_states
+    p.update()
+    #plist = p.read_power()
+    #p.state['power'] = plist  # for log_states
 
 logging.info('')
 log_states('IF 4-9 GHz + FLOOG states')

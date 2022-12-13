@@ -47,6 +47,7 @@ args = parser.parse_args()
 config = namakanui.util.get_config('cdpsm.ini')  # holds pmeter config also
 cdpsm = namakanui.cdpsm.CDPSM(config, level=logging.DEBUG)
 pmeter = namakanui.pmeter2.PMeter2(config, 'cdpsm_p5', level=logging.DEBUG)
+# pmeter A46 only reads after SW1 & SW2 both, so only --lhc & --rhc have effects.
 
 def log_states(msg):
     logging.info('%s:', msg)
@@ -61,6 +62,7 @@ cdpsm.set_RHC_source(args.rhc)
 cdpsm.set_polarization(args.pol)
 cdpsm.set_band(args.band)
 
+pmeter.set_ghz(6.5)
 pmeter.update()
 
 log_states('final states')
