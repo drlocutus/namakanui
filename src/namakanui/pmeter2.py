@@ -174,7 +174,9 @@ class PMeter2(object):
         #self.read_init(ch)
         ch = self.get_channel_list(ch)
         p = [0.0, 0.0]
-        for i in ch:    ####TODO: concurrent reading? but timeout will destory the existing socket...
+        for i in ch:    
+            ####TODO: concurrent reading? but timeout will destory the existing socket...
+            #### Use two sockets instead then? Causing commands racing??
             try:
                 self.s.sendall(b'abort%d\n'%(i))
                 self.s.sendall(b'read%d?\n'%(i))   # read = init + fetch

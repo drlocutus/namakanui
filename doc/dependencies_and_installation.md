@@ -160,8 +160,8 @@ mkdir -p /jac_logs
 Jit tasks expect to find a couple of config files on the system, even if they won’t be used by your OCS.  In particular the `jit_tasks.xml` file can override DRAMA buffer sizes for a given task.
 
 ```sh
-mkdir -p /jcmtdata/ocs_configs
-cd /jcmtdata/
+mkdir -p /jcmtdata/orac_data/ocs_configs
+cd /jcmtdata/orac_data
 ln -s ocs_configs ocsconfigs
 ```
 

@@ -36,6 +36,7 @@ from datetime import datetime as dt
 from functools import wraps
 import namakanui.instrument
 import namakanui.util
+from namakanui.ini import IncludeParser
 
 # definitely want this, so import it here.
 # other scripts are imported by their actions.
@@ -52,10 +53,6 @@ drama.log.setup(taskname)  # save to file in /jac_logs
 import logging
 log = logging.getLogger(taskname)
 #logging.getLogger('drama').setLevel(logging.DEBUG)
-
-import redis
-import json
-from datetime import datetime as dt
 
 redis_client = None
 redis_pubsub = None
