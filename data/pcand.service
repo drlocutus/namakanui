@@ -1,0 +1,14 @@
+[Unit]
+Description=Namakanui PEAK PCAN-Ethernet Communication
+After=syslog.target network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/jac_sw/itsroot/install/namakanui/bin/Linux-x86_64/
+Environment="PATH=/jac_sw/mambaforge/envs/namakanui/bin:$PATH"
+ExecStart=/jac_sw/mambaforge/envs/namakanui/bin/python3 namakanui_pcand.py
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
