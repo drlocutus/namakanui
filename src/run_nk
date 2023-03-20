@@ -1,0 +1,36 @@
+#!/bin/bash
+# Initialize or destroy the environment for running Namakanui
+
+case $1 in
+    start) 
+        echo "Prepare the env for running Namakanui..."
+        systemctl --user start pcand temp_mon
+        echo "systemd (user) services started."
+        drama_nuke
+        master &
+        sleep 1
+        echo "DRAMA initialized."
+        python3 /jac_sw/itsroot/install/namakanui/bin/Linux-x86_64/namakanui_task.py NAMAKANUI &
+        sleep 1
+        echo "namakanui_task running in the background."
+        ditscmd NAMAKANUI INITIALISE /jac_sw/itsroot/install/namakanui/data/instrument.ini 
+        echo "namakanui intrument parameters loaded."
+        sleep 1
+        python3 /jac_sw/itsroot/install/namakanui/bin/Linux-x86_64/namakanui_gui.py NAMAKANUI
+        echo "namakanui GUI launched."
+        ;;
+    stop) 
+        echo "Closing the Namakanui env..."
+        ditscmd NAMAKANUI EXIT
+        sleep 1
+        drama_nuke
+        systemctl --user stop pcand temp_mon
+        echo "Namakanui terminated."
+        ;;
+    *) 
+        printf "Usage: $0 [start | stop]
+        - start: Initialize the environment for running Namakanui. 
+                 Make sure to close the ALMA front end UI first.
+        - stop:  End and restore the environment for running the ALMA UI.\n" 
+        ;;
+esac
