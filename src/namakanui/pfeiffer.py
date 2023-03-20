@@ -1,11 +1,8 @@
 '''
-namakanui/pfeiffer.py  RMB 20211213
+namakanui/pfeiffer.py  RMB 20211213, Locutus 20230318
 
-Class to monitor vacuum pressure using Pfeiffer TPG 252A + PKR 251.
-
-NOTE: I could not find any documentation for 252A serial communication.
-      This class implements the protocol for the TPG 262,
-      which I hope is basically the same.
+Class to monitor vacuum pressure using Pfeiffer TPG 366
+NOTE: TPG 366 seems to only accept single socket connection at one time.
 
 
 Copyright (C) 2020 East Asian Observatory
@@ -28,9 +25,7 @@ from namakanui.ini import *
 from namakanui import sim
 import socket
 import select
-import time
 import logging
-import os
 
 
 # flow control chars, strip()-safe.
@@ -106,42 +101,48 @@ class Pfeiffer(object):
             self.s = socket.socket()
             self.s.settimeout(self.timeout)
             self.s.connect((self.ip, self.port))
-            # clear input buffer
-            self.cmd(etx)
+            # clear input buffer / reset the interface, which destroys the socket.
+            #self.cmd(etx)
+            ''' NOTE: The ? mark in the cmd() argument is additionally attached to request returned values. '''
             # clear the error word, if set
-            err = self.cmd('ERR?')
+            _ = self.cmd('ERR?')
             # get transmitter (gauge) id
             tid = self.cmd('TID?')
             self.log.debug('Pfeiffer TID: %s', tid)
+            # set the gauge unit to mbar
+            _ = self.cmd('UNI,0')
+            self.state['unit'] = 'mbar'
             
         self.update()
         # Pfeiffer.initialise
     
     
     def update(self):
-        '''Update and publish state.'''
+        '''Update and publish state.
+           6 channels are available but only 2 are used as in 2023. '''
         self.log.debug('update')
         
         if self.simulate:
-            self.state['unit'] = 'mbar'
-            self.state['status'] = 'okay'
-            self.state['err'] = '0000'
-            self.state['s1'] = '1e-9'
+            self.state['status_1'] = 'okay';    self.state['status_2'] = 'okay'
+            self.state['s1'] = '1e-9';          self.state['s2'] = '1e-9'
             self.state['p1'] = float(self.state['s1'])
+            self.state['p2'] = float(self.state['s2'])
+            self.state['err'] = '0000'
         else:
-            unit = self.cmd('UNI?')
-            self.state['unit'] = {0:'mbar/bar', 1:'torr', 2:'pa'}[unit]
-            code,pr1 = self.cmd('PR1?').split(',')
+            states = {0:'okay', 1:'underrange', 2:'overrange', 3:'sensor error',
+                      4:'sensor off', 5:'no sensor', 6:'id error'}
+            
+            code, pr1 = self.cmd('PR1?').split(',')     # dewar
             code = int(code)
-            self.state['status'] = {0:'okay',
-                                    1:'underrange',
-                                    2:'overrange',
-                                    3:'sensor error',
-                                    4:'sensor off',
-                                    5:'no sensor',
-                                    6:'id error'}[code]
+            self.state['status_1'] = states[code]
             self.state['s1'] = pr1
             self.state['p1'] = float(self.state['s1'])
+
+            code, pr2 = self.cmd('PR2?').split(',')     # pump station
+            code = int(code)
+            self.state['status_2'] = states[code]
+            self.state['s2'] = pr2
+            self.state['p2'] = float(self.state['s2'])
         
         self.state['number'] += 1
         self.publish(self.name, self.state)
@@ -190,7 +191,5 @@ class Pfeiffer(object):
             r = self.reply()
             return r.decode()
         
-        return
         # Pfeiffer.cmd
         
-
