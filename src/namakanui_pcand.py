@@ -109,8 +109,8 @@ clients = set()
 # main loop
 log.debug('entering main loop')
 while True:
-    r,w,x = select.select([listener, can2lan] + list(clients), [], [], 0.0) 
-        ## TODO: remove timeout to block
+    r,w,x = select.select([listener, can2lan] + list(clients), [], [], ) 
+        # remove timeout to block until at least one file descriptor is ready
     r = set(r)
     if listener in r:
         r -= {listener}
