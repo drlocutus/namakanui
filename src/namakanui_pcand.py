@@ -37,7 +37,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import jac_sw
 import sys
-import time
 import logging
 import argparse
 import socket
@@ -89,7 +88,7 @@ if pcan_type == 'tcp':
     can2lan = can2lan_listener.accept()[0]
     can2lan.settimeout(1)
     can2lan_listener.shutdown(socket.SHUT_RDWR)
-    can2lan_listener.close()
+    can2lan_listener.close()        # because only one connection from PCAN?
 else:
     log.debug('binding can2lan on udp port %d', can2lan_port)
     can2lan = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -110,7 +109,8 @@ clients = set()
 # main loop
 log.debug('entering main loop')
 while True:
-    r,w,x = select.select([listener, can2lan] + list(clients), [], [], 0.0)
+    r,w,x = select.select([listener, can2lan] + list(clients), [], [], 0.0) 
+        ## TODO: remove timeout to block
     r = set(r)
     if listener in r:
         r -= {listener}
@@ -135,7 +135,7 @@ while True:
                 # ignore all errors forwarding packets to clients
                 pass
         log.debug('sent to all:     %s', packet.hex())
-    for client in r:
+    for client in r:    # to be called after listener
         try:
             packet = client.recv(36)
             log.debug('recv %d bytes:   %s from client %s', len(packet), packet.hex(), client)
