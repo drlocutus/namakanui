@@ -96,9 +96,8 @@ class PMeter(object):
             self.s.connect((self.ip, self.port))
             self.s.send(b'*idn?\n')
             idn = self.s.recv(256)
-            ## Because N1914A was used in photonics tuning:
-            #if b'N1913A' not in idn:
-            #    raise RuntimeError(f'expected power meter model N1913A, but got {idn}')
+            if b'N1913A' not in idn:
+                raise RuntimeError(f'expected power meter model N1913A, but got {idn}')
             # TODO control setup via config
             self.s.send(b'*cls\n')  # clear errors
             self.s.send(b'unit:power dbm\n')  # dBm readings
