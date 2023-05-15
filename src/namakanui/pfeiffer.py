@@ -144,6 +144,9 @@ class Pfeiffer(object):
             self.state['s2'] = pr2
             self.state['p2'] = float(self.state['s2'])
         
+        ## TODO: temporary fix for namakanui_gui
+        self.state['status'] = self.state['status_1']
+        
         self.state['number'] += 1
         self.publish(self.name, self.state)
         # Pfeiffer.update
