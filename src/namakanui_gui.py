@@ -541,7 +541,7 @@ class STSRFrame(tk.Frame):
         self.v_sw3_ch.set(state['sw3'])
         self.v_sw4_ch.set(state['sw4'])
         self.v_sw5_ch.set(state['sw5'])
-        self.band.set(str(state['band']), state['band'] in [3,6,7])
+        self.v_band.set(str(state['band']), state['band'] in [3,6,7])
     
     # STSRFrame
         

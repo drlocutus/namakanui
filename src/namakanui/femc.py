@@ -1300,7 +1300,8 @@ class FEMC(object):
         return self.get_standard_float(rca_offset)
     
     def get_cartridge_lo_cartridge_temp(self, ca, te):
-        '''Get temperature in K for given sensor:
+        '''Get temperature in K for given sensor: 
+        # Here the order is for B7 -- check out with namakanui_temp_mon.py #
              0: 4K stage
              1: 110K stage
              2: Mixer pol0
