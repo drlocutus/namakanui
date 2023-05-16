@@ -121,8 +121,9 @@ while True:
         tdict[recname] = pll
         logging.info('')
         logging.info('%-7s: %7.3f K' % (recname, pll))
+        # cartridge temperature sensors @230516. Need cross-check with GUI BandFrame.
         if ca == 2:
-            tnames = ['spare', '110k', 'p01', 'spare', '15k', 'wca']
+            tnames = ['spare', '110k', 'p0', 'spare', '15k', 'p1']
         elif ca == 5:
             tnames = ['4k', '110k', 'spare', 'p0', '15k', 'p1']
         elif ca == 6:
