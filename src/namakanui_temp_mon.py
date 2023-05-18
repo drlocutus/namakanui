@@ -98,7 +98,7 @@ logging.info('sleeping 2s...')
 time.sleep(2)
 
 logfile.write('#utc ')
-logfile.write('b3_pll b3_110k b3_p01 b3_15k b3_wca ')
+logfile.write('b3_pll b3_110k b3_p0 b3_15k b3_p1 ')
 logfile.write('b6_pll b6_4k b6_110k b6_p0 b6_15k b6_p1 ')
 logfile.write('b7_pll b7_4k b7_110k b7_p0 b7_15k b7_p1\n')
 logfile.flush()

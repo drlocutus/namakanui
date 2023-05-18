@@ -22,6 +22,7 @@ case $1 in
     stop) 
         echo "Closing the Namakanui env..."
         ditscmd NAMAKANUI EXIT
+        # Seems hanging here...
         sleep 1
         drama_nuke
         systemctl --user stop pcand temp_mon
