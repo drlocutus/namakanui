@@ -109,6 +109,8 @@ class Pfeiffer(object):
             # get transmitter (gauge) id
             tid = self.cmd('TID?')
             self.log.debug('Pfeiffer TID: %s', tid)
+            # switch on the gauges, only 2 in use in 2023
+            _ = self.cmd('SEN,2,2,0,0,0,0')
             # set the gauge unit to mbar
             _ = self.cmd('UNI,0')
             self.state['unit'] = 'mbar'
