@@ -133,6 +133,7 @@ class STSR(object):
         else:
             # read full lists of channel data directly into state entries
             self.state['5017'] = self.adam5000.get_ai_data(self.slot_index['5017'])
+            self.state['5017'][5] *= -1     # invert sign of -5V
             self.state['5018'] = self.adam5000.get_ai_data(self.slot_index['5018'])[:7]
             DO = self.adam5000.get_dio_data(self.slot_index['5056'])
             self.state['5056'] = DO
