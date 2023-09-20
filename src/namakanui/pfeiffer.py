@@ -103,7 +103,7 @@ class Pfeiffer(object):
             self.s.connect((self.ip, self.port))
             # clear input buffer / reset the interface, which destroys the socket.
             #self.cmd(etx)
-            ''' NOTE: The ? mark in the cmd() argument is additionally attached to request returned values. '''
+            ''' NOTE: The ? mark in the cmd() argument is intensionally attached to request returned values. '''
             # clear the error word, if set
             _ = self.cmd('ERR?')
             # get transmitter (gauge) id
@@ -125,8 +125,8 @@ class Pfeiffer(object):
         self.log.debug('update')
         
         if self.simulate:
-            self.state['status_1'] = 'okay';    self.state['status_2'] = 'okay'
-            self.state['s1'] = '1e-9';          self.state['s2'] = '1e-9'
+            self.state['status_1'] = 'okay';    self.state['status_2'] = 'overrange'
+            self.state['s1'] = '1e-9';          self.state['s2'] = '5e-1'
             self.state['p1'] = float(self.state['s1'])
             self.state['p2'] = float(self.state['s2'])
             self.state['err'] = '0000'
@@ -145,9 +145,6 @@ class Pfeiffer(object):
             self.state['status_2'] = states[code]
             self.state['s2'] = pr2
             self.state['p2'] = float(self.state['s2'])
-        
-        ## TODO: temporary fix for namakanui_gui
-        self.state['status'] = self.state['status_1']
         
         self.state['number'] += 1
         self.publish(self.name, self.state)

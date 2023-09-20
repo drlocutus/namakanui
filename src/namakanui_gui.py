@@ -206,9 +206,12 @@ class VacuumFrame(tk.Frame):
         self.connected.set('NO', False)
         self.v_number = grid_label(self, 'number', 1)
         self.v_simulate = grid_label(self, 'simulate', 2)  # TODO sim_text as tooltip
-        self.v_vacuum_unit = grid_value(self, 3, 0, 'nw', label=True)
-        self.v_vacuum_s1 = grid_value(self, 3, 1, 'ne')
-        self.v_vacuum_status = grid_label(self, 'vsensor', 4)
+        self.v_vacuum_g1 = grid_label(self, 'gague_1', 3)
+        self.v_vacuum_u1 = grid_value(self, 4, 0, 'nw', label=True)
+        self.v_vacuum_s1 = grid_value(self, 4, 1, 'ne')
+        self.v_vacuum_g2 = grid_label(self, 'gague_2', 5)
+        self.v_vacuum_u2 = grid_value(self, 6, 0, 'nw', label=True)
+        self.v_vacuum_s2 = grid_value(self, 6, 1, 'ne')
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(4, weight=1)
@@ -218,19 +221,15 @@ class VacuumFrame(tk.Frame):
         self.connected.bg('green')
         self.v_number.set('%d'%(state['number']))
         self.v_simulate.set('0x%x'%(state['simulate']), state['simulate']==0)  # TODO tooltip
-        pressure_unit = state['unit']
+        pressure_unit = state.get('unit')
         if not pressure_unit or pressure_unit == 'none':
             pressure_unit = 'pressure'
-        self.v_vacuum_unit.set(pressure_unit)
-        self.v_vacuum_s1.set(state['s1'])
-        self.v_vacuum_status.set(state['status'], state['status'] == 'okay')
-        try:
-            s1 = float(state['s1'])
-            if not 0.0 < s1 < 1e-6:
-                raise ValueError
-            self.v_vacuum_s1.bg('')
-        except (ValueError, TypeError):
-            self.v_vacuum_s1.bg('red')
+        self.v_vacuum_g1.set(state['status_1'], state['status_1'] == 'okay')
+        self.v_vacuum_u1.set(pressure_unit)
+        self.v_vacuum_s1.set(state['s1'], 0.0 < state['p1'] < 1e-6)
+        self.v_vacuum_g2.set(state['status_2'], state['status_2'] == 'okay')
+        self.v_vacuum_u2.set(pressure_unit)
+        self.v_vacuum_s2.set(state['s2'], 0.0 < state['p2'] < 1e-6)
     
     # VacuumFrame
 
