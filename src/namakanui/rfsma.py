@@ -140,7 +140,7 @@ class RFSMA(object):
         '''
         self.log.debug('update')
         
-        if self.simulate and not '5017' in self.state:
+        if self.simulate:
             self.state['5017'] = [0.0, 0.0, 9.6, 4.8]
             self.state['5018'] = [25.0]*4
             for i in range(2,6):

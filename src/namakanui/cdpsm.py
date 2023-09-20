@@ -128,7 +128,7 @@ class CDPSM(object):
         '''
         self.log.debug('update')
         
-        if self.simulate and not '5017' in self.state:
+        if self.simulate:
             self.state['5017'] = [-2.2, -2.2, 5.0, 5.9, 4.8, 0.0, 0.0, 0.2]
             self.state['5018'] = [25.0]*5
             self.state['5056'] = [0]*16

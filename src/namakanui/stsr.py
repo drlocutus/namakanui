@@ -125,7 +125,7 @@ class STSR(object):
         '''
         self.log.debug('update')
         
-        if self.simulate and not '5017' in self.state:
+        if self.simulate:
             self.state['5017'] = [4.8, 3.2, 9.6, 4.8, 2.0, -2.0, 0.0, 0.0]
             self.state['5018'] = [25.0]*7
             DO = [0]*16
