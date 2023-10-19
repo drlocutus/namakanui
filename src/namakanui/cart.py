@@ -1451,6 +1451,8 @@ class Cart(object):
         Does nothing if lock_side already matches state[pll_sb_lock],
         which is kept updated by the update_b function.
         '''
+        if lock_side == 0:
+            lock_side = '0'     # To distinguish from None at the next line
         lock_side = lock_side or self.default_lock_side
         self.default_lock_side = None  # use for first call only
         if lock_side is None:
@@ -1459,7 +1461,7 @@ class Cart(object):
             lock_side = lock_side.lower() if hasattr(lock_side, 'lower') else lock_side
             lock_side = {0:0, 1:1, '0':0, '1':1, 'below':0, 'above':1}[lock_side]
         lock_str = {0:'below', 1:'above'}[lock_side]
-        self.log.info('set_lock_side(%d, force=%s): %s', lock_side, force, lock_str)
+        self.log.info('set_lock_side(%d, force=%s): (resolved) %s', lock_side, force, lock_str)
         if self.sim_warm:
             self.state['pll_sb_lock'] = lock_side
             return

@@ -417,7 +417,7 @@ def LOCK_SB_SWITCH(msg):
     if band not in bands:
         raise ValueError(f'band {band} not in {bands}')
     cart = instrument.carts[band]
-    if cart.state['pd_enable'] and not cart.sim_warm:
+    if cart.state['pd_enable']:
         current = cart.state['pll_sb_lock']  # 0 or 1
         cart.set_lock_side({0:1, 1:0}[current])
         log.info('band %d pll lock sideband switched to %d', band, cart.state['pll_sb_lock'])
