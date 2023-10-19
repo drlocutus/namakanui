@@ -402,6 +402,30 @@ def CART_POWER(msg):
     # CART_POWER
 
 
+def lock_sb_switch_args(band):
+    return int(band)
+
+def LOCK_SB_SWITCH(msg):
+    '''Switch the pll lock sideband between Below- and Above-Reference. Arguments: 
+            band: one of 3,6,7
+    '''
+    log.debug('LOCK_SB_SWITCH(%s)', msg.arg)
+    check_init()
+    args,kwargs = drama.parse_argument(msg.arg)
+    band = lock_sb_switch_args(*args,**kwargs)
+    bands = instrument.bands
+    if band not in bands:
+        raise ValueError(f'band {band} not in {bands}')
+    cart = instrument.carts[band]
+    if cart.state['pd_enable'] and not cart.sim_warm:
+        current = cart.state['pll_sb_lock']  # 0 or 1
+        cart.set_lock_side({0:1, 1:0}[current])
+        log.info('band %d pll lock sideband switched to %d', band, cart.state['pll_sb_lock'])
+    else:
+        log.info('band %d pll lock sideband unchanged, current %d', band, cart.state['pll_sb_lock'])
+    # LOCK_SB_SWITCH
+
+
 def TUNE(msg):
     '''Tune a cartridge, after setting reference frequency.
        See namakanui_tune.py for arguments.
@@ -450,6 +474,7 @@ try:
                         SET_BAND,
                         LOAD_HOME, LOAD_MOVE,
                         CART_POWER,
+                        LOCK_SB_SWITCH, 
                         TUNE,
                         DEFLUX,
                         IS_ACTIVE])

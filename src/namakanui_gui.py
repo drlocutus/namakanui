@@ -674,21 +674,31 @@ class BandFrame(tk.Frame):
         
         # PLL, including LO, YIG
         pll_frame = tk.LabelFrame(c1, text='PLL')
-        self.v_lo_ghz = grid_label(pll_frame, 'LO GHz', 0, width=14)
-        self.v_yig_ghz = grid_label(pll_frame, 'YTO GHz', 1)
-        self.v_yto_coarse = grid_label(pll_frame, 'YTO counts', 2)
-        self.v_yig_heater_c = grid_label(pll_frame, 'YTO heater', 3)
-        self.v_pll_loop_bw = grid_label(pll_frame, 'loop BW', 4)
-        self.v_pll_sb_lock = grid_label(pll_frame, 'lock SB', 5)
-        self.v_pll_null_int = grid_label(pll_frame, 'null intg.', 6)
-        self.v_pll_lock_v = grid_label(pll_frame, 'lock V', 7)
-        self.v_pll_corr_v = grid_label(pll_frame, 'corr V', 8)
-        self.v_pll_unlock = grid_label(pll_frame, 'unlocked', 9)
-        self.v_pll_ref_power = grid_label(pll_frame, 'ref power', 10)
-        self.v_pll_if_power = grid_label(pll_frame, 'IF power', 11)
-        pll_frame.grid_columnconfigure(0, weight=1)
-        pll_frame.grid_columnconfigure(1, weight=1)
-        pll_frame.grid_rowconfigure(11, weight=1)
+        pll_status = tk.Frame(pll_frame)
+        pll_status.pack(fill='x')
+        self.v_lo_ghz = grid_label(pll_status, 'LO GHz', 0, width=14)
+        self.v_yig_ghz = grid_label(pll_status, 'YTO GHz', 1)
+        self.v_yto_coarse = grid_label(pll_status, 'YTO counts', 2)
+        self.v_yig_heater_c = grid_label(pll_status, 'YTO heater', 3)
+        self.v_pll_loop_bw = grid_label(pll_status, 'loop BW', 4)
+        self.v_pll_sb_lock = grid_label(pll_status, 'lock SB', 5)
+        self.v_pll_null_int = grid_label(pll_status, 'null intg.', 6)
+        self.v_pll_lock_v = grid_label(pll_status, 'lock V', 7)
+        self.v_pll_corr_v = grid_label(pll_status, 'corr V', 8)
+        self.v_pll_unlock = grid_label(pll_status, 'unlocked', 9)
+        self.v_pll_ref_power = grid_label(pll_status, 'ref power', 10)
+        self.v_pll_if_power = grid_label(pll_status, 'IF power', 11)
+        pll_status.grid_columnconfigure(0, weight=1)
+        pll_status.grid_columnconfigure(1, weight=1)
+        pll_status.grid_rowconfigure(11, weight=1)
+        lock_sb_button = tk.Frame(pll_frame)
+        lock_sb_button.pack(side='right')
+        self.lock_sb_switch_button = tk.Button(lock_sb_button, text='Switch Lock SB')
+        self.lock_sb_switch_button.pack(side='right')
+        def lock_sb_switch_callback():
+            drama.blind_obey(taskname, "LOCK_SB_SWITCH", band=self.band)
+        #self.lock_sb_switch_button['command'] = lock_sb_switch_callback
+        self.lock_sb_switch_button['command'] = lock_sb_switch_callback
         
         # LNA.  TODO band 3/6 only have a single stage.
         # config file order is Vd, Id, Vg.
@@ -904,7 +914,7 @@ class App(tk.Frame):
         logging.root.addHandler(self.msg_handler)
         
         self.actions = [self.MON_MAIN, self.MON_B3, self.MON_B6, self.MON_B7,
-                        self.POWER, self.TUNE, self.LOAD_MOVE, self.LOAD_HOME,
+                        self.POWER, self.LOCK_SB_SWITCH, self.TUNE, self.LOAD_MOVE, self.LOAD_HOME,
                         self.SET_SG_DBM, self.SET_SG_HZ, self.SET_SG_OUT,
                         self.SET_ATT,
                         self.SET_BAND, self.MSG_TEST]
@@ -1188,6 +1198,25 @@ class App(tk.Frame):
             # wait for update to reenable buttons
         # App.POWER
     
+    def lock_sb_switch_args(self, band):
+        return int(band)
+
+    def LOCK_SB_SWITCH(self, msg):
+        args,kwargs = drama.parse_argument(msg.arg)
+        band = self.lock_sb_switch_args(*args,**kwargs)
+        frame = {3:self.b3_frame, 6:self.b6_frame, 7:self.b7_frame}[band]
+        frame.lock_sb_switch_button['state'] = 'disabled'
+        try:
+            drama.interested()
+            tid = drama.obey(namakanui_taskname, "LOCK_SB_SWITCH", band=band)
+            self.wait_loop(tid, 10, "LOCK_SB_SWITCH")
+        except:
+            log.exception('exception in LOCK_SB_SWITCH')
+            raise
+        finally:
+            frame.lock_sb_switch_button['state'] = 'normal'
+        # App.LOCK_SB_SWITCH
+
     def tune_args(self, band, lo_ghz, voltage):
         return int(band), float(lo_ghz), float(voltage)
     
@@ -1381,5 +1410,3 @@ finally:
     log.info('drama.stop(%s)', taskname)
     drama.stop()
     log.info('done')
-        
-

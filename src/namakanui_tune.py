@@ -69,7 +69,7 @@ def try_dbm(cart, reference, lo_ghz, voltage, dbm, skip_servo_pa, lock_only, del
 
 
 def tune(instrument, band, lo_ghz, voltage=0.0,
-         lock_side='above', pll_if=[-.8,-2.5],
+         lock_side=None, pll_if=[-.8,-2.5],
          att_ini=True, att_start=None, att_min=None,
          dbm_ini=True, dbm_start=None, dbm_max=None,
          skip_servo_pa=False, lock_only=False):
@@ -163,9 +163,9 @@ def tune(instrument, band, lo_ghz, voltage=0.0,
     # set PLL lock side and compute frequencies
     cart.set_lock_side(lock_side)
     lock_side = cart.state['pll_sb_lock']  # 0 or 1
-    floog = reference.floog * [1.0, -1.0][lock_side]  # [below, above]
+    floog = reference.floog * [-1.0, 1.0][lock_side]  # [below, above]
     fyig = lo_ghz / (cart.cold_mult * cart.warm_mult)
-    fsig = (fyig*cart.warm_mult + floog) / reference.harmonic
+    fsig = (fyig*cart.warm_mult - floog) / reference.harmonic
     
     # function alias
     clip = namakanui.util.clip

@@ -17,7 +17,7 @@ case $1 in
         echo "namakanui intrument parameters loaded."
         sleep 1
         python3 /jac_sw/itsroot/install/namakanui/bin/Linux-x86_64/namakanui_gui.py NAMAKANUI
-        echo "namakanui GUI launched."
+        echo "namakanui GUI launched."      # Actually won't reach here if the GUI is running in the foreground
         ;;
     stop) 
         echo "Closing the Namakanui env..."
