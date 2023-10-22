@@ -468,16 +468,17 @@ class Cart(object):
               Does the self.hot flag need to go into state for user?
               i.e. WAS_HOT, NEEDS_INIT
         
-        NOTE: Normal order is  [4K, 110K, P0,  -1, 15K, P1]
-              but for band3 is [-1, 110K, P01, -1, 15K, WCA]
-              where the P01 mixers are in the 15K stage.
+        NOTE: temp. sensor order:
+              B3 = ['spare', '110k', 'p0', 'spare', '15k', 'p1']
+              B6 = ['4k', '110k', 'spare', 'p0', '15k', 'p1']
+              B7 = ['4k', '110k', 'p0', 'spare', '15k', 'p1']
+              where the p0/p1 mixers are in the 15K stage.
         
-        GLT:  Band6 order is   [4K, 110K, -1,  P0, 15K, P1]
+        TODO: collect temp. sensor orders in one place.
         '''
         cart_temp = self.state['cart_temp']
-        if self.band == 3:
-            return any(not 0.0 < cart_temp[te] < 30.0 for te in [2,4])
-        return any(not 0.0 < cart_temp[te] < 30.0 for te in [0,3,4,5])
+        temp_picked = {3:[2,4,5], 6:[0,3,4,5], 7:[0,2,4,5]}[self.band]
+        return any(not 0.0 < cart_temp[te] < 30.0 for te in temp_picked)
     
     
     def has_sis_mixers(self):
@@ -1461,7 +1462,7 @@ class Cart(object):
             lock_side = lock_side.lower() if hasattr(lock_side, 'lower') else lock_side
             lock_side = {0:0, 1:1, '0':0, '1':1, 'below':0, 'above':1}[lock_side]
         lock_str = {0:'below', 1:'above'}[lock_side]
-        self.log.info('set_lock_side(%d, force=%s): (resolved) %s', lock_side, force, lock_str)
+        self.log.info('set_lock_side(%d, force=%s): %s (parsed)', lock_side, force, lock_str)
         if self.sim_warm:
             self.state['pll_sb_lock'] = lock_side
             return
