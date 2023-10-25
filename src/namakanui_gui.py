@@ -697,7 +697,6 @@ class BandFrame(tk.Frame):
         self.lock_sb_switch_button.pack(side='right')
         def lock_sb_switch_callback():
             drama.blind_obey(taskname, "LOCK_SB_SWITCH", band=self.band)
-        #self.lock_sb_switch_button['command'] = lock_sb_switch_callback
         self.lock_sb_switch_button['command'] = lock_sb_switch_callback
         
         # LNA.  TODO band 3/6 only have a single stage.
@@ -878,7 +877,8 @@ class BandFrame(tk.Frame):
         
         self.v_pll_loop_bw.set('%d'%(state['pll_loop_bw']))  # TODO warn?
         self.v_pll_null_int.set('%d'%(state['pll_null_int']), state['pll_null_int']==0)
-        self.v_pll_sb_lock.set('%d'%(state['pll_sb_lock']))
+        _lock_str = {0:'below', 1:'above'}[state['pll_sb_lock']]
+        self.v_pll_sb_lock.set('%s'%(_lock_str))
         self.v_pll_unlock.set('%d'%(state['pll_unlock']), state['pll_unlock']==0)
         
         # TODO what is the typical ping time in practice?
