@@ -1,0 +1,16 @@
+[Unit]
+Description=Namakanui Main Task
+Requires=nk_drama.service nk_temp_mon.service nk_pcand.service
+
+[Service]
+Type=exec
+WorkingDirectory=/jac_sw/itsroot/install/namakanui/bin/Linux-x86_64/
+Environment=DRAMA_BASE=/jac_sw/drama/CurrentRelease IMP_NET_KBYTES=192000 IMP_STARTUP=/jac_sw/drama/etc/startup IMP_SCRATCH=/tmp IMP_KEY=0xffff "PATH=/jac_sw/mambaforge/envs/namakanui/bin:$PATH"
+ExecStart=/jac_sw/mambaforge/envs/namakanui/bin/python3 namakanui_task.py NAMAKANUI
+ExecStartPost=/usr/bin/sleep 1
+ExecStartPost=/jac_sw/drama/CurrentRelease/bin/Linux-x86_64/ditscmd NAMAKANUI INITIALISE /jac_sw/itsroot/install/namakanui/data/instrument.ini
+ExecStop=/jac_sw/drama/CurrentRelease/bin/Linux-x86_64/ditscmd NAMAKANUI EXIT
+#ExecStopPost=
+Restart=on-success
+
+[Install]

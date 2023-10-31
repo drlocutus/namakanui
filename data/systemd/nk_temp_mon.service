@@ -2,14 +2,14 @@
 Description=Namakanui Cryostat Monitoring
 After=syslog.target network.target network-online.target pcand.service
 Wants=network-online.target
-Requires=pcand.service
+Requires=nk_pcand.service
 
 [Service]
-Type=simple
+Type=exec
 WorkingDirectory=/jac_sw/itsroot/install/namakanui/bin/Linux-x86_64/
 Environment="PATH=/jac_sw/mambaforge/envs/namakanui/bin:$PATH"
 ExecStart=/jac_sw/mambaforge/envs/namakanui/bin/python3 namakanui_temp_mon.py
-Restart=on-failure
+Restart=on-success
 
 [Install]
 WantedBy=default.target

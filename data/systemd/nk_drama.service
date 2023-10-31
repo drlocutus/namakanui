@@ -1,0 +1,13 @@
+[Unit]
+Description=DRAMA Communication IMP
+
+[Service]
+Type=exec
+Environment=DRAMA_BASE=/jac_sw/drama/CurrentRelease IMP_NET_KBYTES=192000 IMP_STARTUP=/jac_sw/drama/etc/startup IMP_SCRATCH=/tmp IMP_KEY=0xffff
+ExecStartPre=/jac_sw/drama/CurrentRelease/bin/Linux-x86_64/drama_nuke
+ExecStart=/jac_sw/drama/CurrentRelease/bin/Linux-x86_64/master
+ExecStop=/jac_sw/drama/CurrentRelease/bin/Linux-x86_64/drama_nuke
+RemainAfterExit=yes
+
+[Install]
+WantedBy=nk_task.service
