@@ -11,8 +11,17 @@ case $1 in
         ;;
     stop) 
         echo "Closing the Namakanui env..."
-        systemctl --user stop nk_task nk_drama nk_pcand nk_temp_mon
+        systemctl --user stop nk_task nk_drama
+        systemctl --user start nk_temp_mon nk_pcand
+        python3 /jac_sw/itsroot/install/namakanui/bin/Linux-x86_64/namakanui_power_down.py
+        systemctl --user stop nk_temp_mon nk_pcand
         echo "Namakanui terminated."
+        ;;
+    eng)
+        echo "Entering the engineering mode..."
+        systemctl --user stop nk_task nk_drama 
+        systemctl --user start nk_temp_mon nk_pcand
+        echo "Engineering mode started."
         ;;
     *) 
         printf "Usage: $0 [start | stop]

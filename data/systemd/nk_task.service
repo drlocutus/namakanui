@@ -11,6 +11,6 @@ ExecStartPost=/usr/bin/sleep 1
 ExecStartPost=/jac_sw/drama/CurrentRelease/bin/Linux-x86_64/ditscmd NAMAKANUI INITIALISE /jac_sw/itsroot/install/namakanui/data/instrument.ini
 ExecStop=/jac_sw/drama/CurrentRelease/bin/Linux-x86_64/ditscmd NAMAKANUI EXIT
 #ExecStopPost=
-Restart=on-success
+#Restart=on-success
 
 [Install]
