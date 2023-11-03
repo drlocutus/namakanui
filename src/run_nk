@@ -13,7 +13,8 @@ case $1 in
         echo "Closing the Namakanui env..."
         systemctl --user stop nk_task nk_drama
         systemctl --user start nk_temp_mon nk_pcand
-        python3 /jac_sw/itsroot/install/namakanui/bin/Linux-x86_64/namakanui_power_down.py
+        #python3 /jac_sw/itsroot/install/namakanui/bin/Linux-x86_64/namakanui_power_down.py
+        # Power down all the cartridge power. Can't restart operations using Namakanui alone!!
         systemctl --user stop nk_temp_mon nk_pcand
         echo "Namakanui terminated."
         ;;
@@ -24,9 +25,10 @@ case $1 in
         echo "Engineering mode started."
         ;;
     *) 
-        printf "Usage: $0 [start | stop]
+        printf "Usage: $0 [ start | stop | eng ]
         - start: Initialize the environment for running Namakanui. 
-                 Make sure to close the ALMA front end UI first.
-        - stop:  End and restore the environment for running the ALMA UI.\n" 
+                 Make sure to close the ALMA FE UI first.
+        - stop:  Stop and clean the Namakanui environment.
+        - eng:   Enter the engineering mode. \n" 
         ;;
 esac
