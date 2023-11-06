@@ -1,5 +1,6 @@
 [Unit]
 Description=Namakanui Main Task
+After=nk_drama.service nk_pcand.service
 Requires=nk_drama.service nk_temp_mon.service nk_pcand.service
 
 [Service]

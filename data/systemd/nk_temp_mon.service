@@ -1,6 +1,6 @@
 [Unit]
 Description=Namakanui Cryostat Monitoring
-After=syslog.target network.target network-online.target pcand.service
+After=syslog.target network.target network-online.target nk_pcand.service
 Wants=network-online.target
 Requires=nk_pcand.service
 
