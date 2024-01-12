@@ -76,7 +76,7 @@ class Load(object):
         self.speed = float(self.config['load']['speed'])
         
         # can query controller for this; do so in initialise
-        self.wrap = int(self.config['load']['wrap'])
+        #self.wrap = int(self.config['load']['wrap'])
         
         # NOTE: reverse lookup does not allow synonymous positions
         self.positions = {n:int(p) for n,p in self.config['positions'].items()}
@@ -114,10 +114,12 @@ class Load(object):
             self.port = int(self.config['load']['port'])
             self.socket_reuse = False
             # double-check the number of counts per full rotation
+            """ Not use the wrap in rotation
             wrap = int(self.cmd('?:R\r\n')[1:])  # skip '+'
             if wrap != self.wrap:
                 self.log.warning('wrap was set to %d, but controller reports %d', self.wrap, wrap)
                 self.wrap = wrap  # trust the controller
+            """
             # make sure the motor is on.
             r = self.cmd('C:11\r\n')
             if r != 'OK\r\n':
@@ -296,7 +298,7 @@ class Load(object):
         if pos in self.positions:
             pos = self.positions[pos]
         pos = int(pos)
-        pos = pos % self.wrap  # prevent windup
+        #pos = pos % self.wrap  # prevent windup -- not used
         
         if self.simulate:
             self.state['pos_counts'] = pos
