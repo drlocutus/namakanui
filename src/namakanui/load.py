@@ -109,29 +109,10 @@ class Load(object):
         self.simulate &= sim.SIM_LOAD
         
         if not self.simulate:
-            self.close()
-            timeout = float(self.config['load']['timeout'])
-            cms = self.config['load']['cms']
-            port = int(self.config['load']['port'])
-            # the cms doesn't like to reconnect, so try a few times
-            self.log.debug('connecting to %s:%d', cms, port)
-            attempt = 0
-            max_attempts = 3
-            while attempt < max_attempts:
-                try:
-                    self.s = socket.socket()
-                    self.s.settimeout(timeout)
-                    self.s.connect((cms, port))
-                    break
-                except socket.error as e:
-                    attempt += 1
-                    if attempt >= max_attempts:
-                        self.log.error('giving up, error connecting to %s:%d: %s', cms, port, e)
-                        raise
-                    self.log.error('retrying after error connecting to %s:%d: %s', cms, port, e)
-                    self.sleep(0.5)
-            if attempt:
-                self.log.info('connected to %s:%d after %d attempts', cms, port, attempt+1)
+            self.timeout = float(self.config['load']['timeout'])
+            self.cms = self.config['load']['cms']
+            self.port = int(self.config['load']['port'])
+            self.socket_reuse = False
             # double-check the number of counts per full rotation
             wrap = int(self.cmd('?:R\r\n')[1:])  # skip '+'
             if wrap != self.wrap:
@@ -151,12 +132,12 @@ class Load(object):
         self.state['pos_counts'] = 0
         self.state['pos_name'] = self.positions_r.get(0, 'undef')
         
-        self.update()
+        self.internal_update()
         # Load.initialise
         
     
-    def update(self):
-        '''Call at ~0.1 Hz.'''
+    def internal_update(self):
+        '''Separate from HW's update(); only actually update after motions.'''
         self.log.debug('update')
         
         if not self.simulate:
@@ -172,13 +153,20 @@ class Load(object):
                 raise RuntimeError('bad reply to Q: %s' % (r))
             # hopefully we can use ? even when busy -- TODO TEST
             r = self.cmd('?:ORG\r\n')
-            self.state['homed'] = int(r)
+            self.state['homed'] = int(r)    # TODO: it's actually rotation direction; state's name needs to be changed so as GUI's.
         else:
             # pretended pos_counts and pos_name held from last move()
             self.state['busy'] = 0
             self.state['homed'] = 1
         
         self.state['number'] += 1
+        self.publish(self.name, self.state)
+        # Load.internal_update
+
+    
+    def update(self):
+        '''Call at ~0.1 Hz. Not the real time state anymore!'''
+        self.log.debug('update--only publish state')
         self.publish(self.name, self.state)
         # Load.update
     
@@ -187,15 +175,49 @@ class Load(object):
         '''Send command string c to controller and return reply.
            TODO: pass in bytes everywhere, avoid encode/decode.
         '''
-        # clear out any leftover junk on the socket before sending
-        while select.select([self.s],[],[],0.0)[0]:
-            self.s.recv(64)
+        if hasattr(self, 's') and self.socket_reuse:
+            pass
+        else:
+            # reconnect every time in order to release the converter for other programs
+            self.close()
+            # the cms doesn't like to reconnect, so try a few times
+            self.log.debug('connecting to %s:%d', self.cms, self.port)
+            attempt = 0
+            max_attempts = 3
+            while attempt < max_attempts:
+                try:
+                    self.s = socket.socket()
+                    self.s.settimeout(self.timeout)
+                    self.s.connect((self.cms, self.port))
+                    break
+                except socket.error as e:
+                    attempt += 1
+                    if attempt >= max_attempts:
+                        self.log.error('giving up, error connecting to %s:%d: %s', 
+                            self.cms, self.port, e)
+                        raise
+                    self.log.error('retrying after error connecting to %s:%d: %s', 
+                        self.cms, self.port, e)
+                    self.sleep(0.5)
+            if attempt:
+                self.log.info('connected to %s:%d after %d attempts', self.cms, 
+                    self.port, attempt+1)
+
+        if self.socket_reuse:
+            # clear out any leftover junk on the socket before sending
+            while select.select([self.s],[],[],0.0)[0]:
+                self.s.recv(64)
+        
         c = c.encode()  # needs to be bytes
         self.log.debug('cmd: %s', c)
         self.s.sendall(c)
         r = b''
         while not b'\r\n' in r:
             r += self.s.recv(64)
+        
+        if not self.socket_reuse:
+            self.close()
+        
         # if the controller is power-cycled, we get a 0xff byte.
         # remove any such bytes from the reply string.
         r = r.replace(b'\xff', b'')
@@ -209,7 +231,7 @@ class Load(object):
         self.log.debug('stop')
         
         if self.simulate:
-            self.update()  # sets busy=0
+            self.internal_update()  # sets busy=0
             return
             
         r = self.cmd('L:1\r\n')
@@ -219,11 +241,11 @@ class Load(object):
         # a foolish consistency
         try:
             # wait 3s for ready status
-            self.update()
+            self.internal_update()
             timeout = time.time() + 3.0
             while self.state['busy'] and time.time() < timeout:
                 self.sleep(0.5)
-                self.update()
+                self.internal_update()
             if self.state['busy']:
                 raise RuntimeError('timeout waiting for axis ready')
         finally:
@@ -234,8 +256,9 @@ class Load(object):
     
     def home(self):
         '''Home the stage and wait for completion.'''
-        self.log.info('home')
-        
+        self.log.info('home -- has been disabled')
+        pass
+    """
         if self.simulate:
             self.update()  # sets homed=1
             return
@@ -262,9 +285,9 @@ class Load(object):
                 raise RuntimeError('home failed')
         finally:
             self.cmd('L:1\r\n')  # make sure motor stops moving
-        
+    """
         # Load.home
-    
+
     
     def move(self, pos):
         '''Move to pos (name or counts) and wait for completion.'''
@@ -278,15 +301,17 @@ class Load(object):
         if self.simulate:
             self.state['pos_counts'] = pos
             self.state['pos_name'] = self.positions_r.get(pos, 'undef')
-            self.update()
+            self.internal_update()
             return
         
-        if not self.state['homed']:
-            raise RuntimeError('stage not homed')
+        self.socket_reuse = True  # keep the socket open for the duration of the move
         
         # stop whatever we're doing and wait for ready status
-        self.stop()
-        
+        self.stop()     # also updates the state
+
+        if not self.state['homed']:
+            raise RuntimeError('stage not homed')
+                
         # maybe we're already in position?
         if pos == self.state['pos_counts']:
             return
@@ -312,7 +337,7 @@ class Load(object):
             self.state['busy'] = 1
             while self.state['busy'] and time.time() < timeout:
                 self.sleep(0.5)
-                self.update()
+                self.internal_update()
             if self.state['busy']:
                 raise RuntimeError('timeout waiting for move completion')
             
@@ -322,6 +347,7 @@ class Load(object):
                 raise RuntimeError('move ended at %d instead of %d' % (end_pos, pos))
         finally:
             self.cmd('L:1\r\n')  # make sure motor stops moving
+            self.socket_reuse = False
         
         # Load.move
 
