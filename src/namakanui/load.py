@@ -348,8 +348,8 @@ class Load(object):
             if end_pos != pos:
                 raise RuntimeError('move ended at %d instead of %d' % (end_pos, pos))
         finally:
-            self.cmd('L:1\r\n')  # make sure motor stops moving
             self.socket_reuse = False
+            self.cmd('L:1\r\n')  # make sure motor stops moving && discard the socket
         
         # Load.move
 
