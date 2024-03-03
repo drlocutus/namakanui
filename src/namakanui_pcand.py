@@ -1,4 +1,4 @@
-#!/local/python3/bin/python3
+#!/usr/bin/env python3
 '''
 namakanui_pcand.py   RMB 20220125
 
@@ -35,12 +35,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 '''
 
-import jac_sw
-import sys
-import logging
-import argparse
-import socket
-import select
+import argparse, asyncio, logging, select, socket, sys
 import namakanui.util
 
 namakanui.util.setup_logging()
@@ -85,7 +80,7 @@ if pcan_type == 'tcp':
     can2lan_listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     can2lan_listener.bind(('0.0.0.0', can2lan_port))
     can2lan_listener.listen()
-    can2lan = can2lan_listener.accept()[0]
+    can2lan, _addr = can2lan_listener.accept()      # blocks until PCAN connects
     can2lan.settimeout(1)
     can2lan_listener.shutdown(socket.SHUT_RDWR)
     can2lan_listener.close()        # because only one connection from PCAN?
@@ -104,58 +99,55 @@ listener = socket.socket()
 listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 listener.bind(('0.0.0.0', pcand_port))
 listener.listen()
-clients = set()
 
-# main loop
-log.debug('entering main loop')
-while True:
-    r,w,x = select.select([listener, can2lan] + list(clients), [], [], ) 
-        # remove timeout to block until at least one file descriptor is ready
-    r = set(r)
-    if listener in r:
-        r -= {listener}
-        client = listener.accept()[0]
-        log.debug('accepted new client %s', client)
-        #client.setblocking(False)  # causes delays?
-        client.settimeout(1)
-        client.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        clients |= {client}
-    if can2lan in r:
-        r -= {can2lan}
-        packet = can2lan.recv(36)
-        log.debug('can2lan recv:    %s', packet.hex())
-        if not packet:
-            log.error('lost PCAN connection')
-            break
-        for client in clients:
-            try:
-                client.send(packet)
-            except:
-                log.exception('send exception for client %s', client)
-                # ignore all errors forwarding packets to clients
-                pass
-        log.debug('sent to all:     %s', packet.hex())
-    for client in r:    # to be called after listener
-        try:
-            packet = client.recv(36)
-            log.debug('recv %d bytes:   %s from client %s', len(packet), packet.hex(), client)
-        except:
-            packet = b''
-            log.exception('recv exception for client %s', client)
-        if len(packet) < 36:  # bad/lost/closed connection
-            log.debug('dropping client %s', client)
-            client.close()
-            clients -= {client}
-        else:
-            lan2can.send(packet)
-            log.debug('sent to lan2can: %s', packet.hex())
+# asyncio
+def messenger(msg):
+    '''send msg to lan2can and get response from can2lan'''
+    # clear out any leftover junk in the sockets -- might not be necessary
+    r = select.select([lan2can, can2lan], [], [], 0.0)[0]
+    while r:
+        for ri in r:    ri.recv(64) 
+        r = select.select([lan2can, can2lan], [], [], 0.0)[0]
+    
+    lan2can.sendall(msg)
+    log.debug('sent to lan2can: %s', msg.hex())
 
-# only get here if lost PCAN connection, so clean up and exit with error
-log.debug('done, closing sockets.')
-listener.close()
-can2lan.close()
-for client in clients:
-    client.close()
-sys.exit(1)
+    packet = can2lan.recv(36)
+    log.debug('can2lan recv:    %s', packet.hex())
+    if not packet:
+        log.error('lost PCAN connection')
+        raise Exception('lost PCAN connection')
+    else:
+        return packet
 
+async def relay(reader, writer):
+    '''relay communications between client programs and the PCAN'''
+    to_femc = await reader.read(36)
+    client = writer.get_extra_info('peername')
+    log.debug('recv %d bytes:   %s from client %s', len(to_femc), to_femc.hex(), client)
+    if to_femc == b'':   log.exception('recv exception for client %s', client)
+    if len(to_femc) < 36:  # bad/lost/closed connection
+        log.debug('dropping client %s', client)
+    else:
+        from_femc = messenger(to_femc)    #lan2can & can2lan, blocks until response
+        writer.write(from_femc)
+        log.debug('reply to client %s with %s', client, from_femc.hex())
+        await writer.drain()
 
+    writer.close()
+    await writer.wait_closed()
+
+async def main():
+    server = await asyncio.start_server(relay, sock=listener)
+    async with server:
+        await server.serve_forever()
+
+log.debug('entering asyncio event loop')
+try:
+    asyncio.run(main())
+finally:    # only get here if lost PCAN connection, so clean up and exit with error
+    log.debug('done, closing sockets.')
+    listener.close()
+    lan2can.close()
+    can2lan.close()
+    sys.exit(1)
