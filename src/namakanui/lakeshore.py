@@ -22,11 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from namakanui.ini import *
 from namakanui import sim
-import socket
-import select
-import time
-import logging
-import os
+import logging, socket, select, os
 
 class Lakeshore(object):
     '''
@@ -132,6 +128,11 @@ class Lakeshore(object):
             # Assert EOI with last byte to indicate end of data
             s.sendall(b'++eoi 1\n')
 
+        # clear out any leftover junk in the socket because the GPIB
+        # converter seems to duplicate results in its buffer
+        while select.select([s],[],[],0.0)[0]:
+            s.recv(64)
+        
         s.sendall(c + b'\r\n')
 
         # always read reply since we set ++auto 1,
