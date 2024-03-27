@@ -5,7 +5,7 @@ Locutus 2024.03.03
 Simulate a PCAN device and test the communication with what is implemented in namakanui_pcand.py
 '''
 
-import argparse, asyncio, logging, select, selectors, socket, sys, time, os
+import argparse, asyncio, logging, select, selectors, socket, sys, time, types, os
 from multiprocessing import Process
 from concurrent.futures import ProcessPoolExecutor
 
@@ -48,6 +48,7 @@ def PCAN():
         sel.unregister(conn)    # Without this, conn will keep sending data
 
     sock = socket.socket()
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(('localhost', 2000))
     sock.listen()
     sock.setblocking(False)
@@ -109,10 +110,13 @@ def messenger(msg):
     while r:
         for ri in r:    ri.recv(64) 
         r = select.select([lan2can, can2lan], [], [], 0.0)[0]
-    
+
+    #_w = select.select([], [lan2can], [], 1.0)[1]   # timeout = 1.0
+    # Probably not necessary; rely on socket's timeout instead
     lan2can.sendall(msg)
     log.debug('sent to lan2can: %s', msg.hex())
 
+    #_r = select.select([can2lan], [], [], 1.0)[0]   # timeout = 1.0
     packet = can2lan.recv(36)
     log.debug('can2lan recv:    %s', packet.hex())
     if not packet:
@@ -121,40 +125,73 @@ def messenger(msg):
     else:
         return packet
 
-async def relay(reader, writer):
+def relay():
     '''relay communications between client programs and the PCAN'''
-    to_femc = await reader.read(36)
-    client = writer.get_extra_info('peername')
-    log.debug('recv %d bytes:   %s from client %s', len(to_femc), to_femc.hex(), client)
-    if to_femc == b'':   log.exception('recv exception for client %s', client)
-    if len(to_femc) < 36:  # bad/lost/closed connection
-        log.debug('dropping client %s', client)
-    else:
-        from_femc = messenger(to_femc)    #lan2can & can2lan, blocks until response
-        writer.write(from_femc)
-        log.debug('reply to client %s with %s', client, from_femc.hex())
-        await writer.drain()
+    sel = selectors.DefaultSelector()
+    sel.register(listener, selectors.EVENT_READ, data=None)
 
-    writer.close()
-    await writer.wait_closed()
+    def accept_wrapper(sock):
+        conn, addr = sock.accept()  # Should be ready to read
+        log.debug(f"{time.strftime('%X')} @RELAY - accepted from {addr}")
+        conn.setblocking(False)
+        data = types.SimpleNamespace(addr=addr, inb=b"", outb=b"")
+        events = selectors.EVENT_READ
+        sel.register(conn, events, data=data)
+    
+    def service_connection(key, mask):
+        sock = key.fileobj
+        data = key.data
+        if mask & selectors.EVENT_READ:
+            try:
+                to_femc = sock.recv(36)
+                log.debug('recv %d bytes:   %s from client %s', len(to_femc), 
+                    to_femc.hex(), sock.getpeername())
+            except:
+                to_femc = b''
+                log.exception('recv exception for client %s', sock.getpeername())
+            if len(to_femc) < 36:  # bad/lost/closed connection
+                log.debug('dropping client %s', sock.getpeername())
+                sel.unregister(sock)
+                sock.close()
+            else:
+                data.outb = messenger(to_femc)    #lan2can & can2lan, blocks until response
+                sel.modify(sock, selectors.EVENT_WRITE, data=data)
 
-async def main():
-    server = await asyncio.start_server(relay, sock=listener)
-    async with server:
-        #await asyncio.create_task(asyncio.to_thread(PCAN))
-        await server.serve_forever()
+        if mask & selectors.EVENT_WRITE:
+            if data.outb:
+                sock.sendall(data.outb)
+                log.debug('reply to client %s with %s', sock.getpeername(), 
+                    data.outb.hex())
+                data.outb = b""
+            sel.modify(sock, selectors.EVENT_READ, data=data)
 
-#%% parallel sockets test
+    while True:
+        events = sel.select()
+        for key, mask in events:
+            if key.data is None:
+                accept_wrapper(key.fileobj)
+            else:
+                service_connection(key, mask)
+
+#%% parallel sockets + burst communication test
 def ding(task):
-    #time.sleep(2.0)     # wait until everything else is ready
+    #time.sleep(2.0)     # wait until servers are ready; let socket timeout handle it
     pid = os.getpid();  print(f'Task {task}, PID = {pid}')
     with socket.socket() as s:
-        s.settimeout(5)
+        #s.settimeout(None)    # default=no timeout, allows PCAN responses in sequence
         s.connect(('localhost', 2002))
-        msg = f'{pid:*<36}'
+        repeats = 2
+        msg = ''
+        for i in range(repeats):
+            _m = f'p={pid}, s={i}'
+            msg += f'{_m:*<36}'
         s.sendall(msg.encode())
-        r = s.recv(36)
-        print(f'Input: {msg} \t Return: {r}')
+        r = b''
+        while len(r) < 36*repeats:
+            r += s.recv(1024)
+        print(f'pid={pid}, hold on for 5 seconds before closing the socket.')
+        time.sleep(5.0)
+        print(s.getsockname(), f'Input: {msg} \t Return: {r}')
 
 def dong():
     ''' a wrapper because the ContextManager will attempt to finish all processes
@@ -162,18 +199,20 @@ def dong():
     '''
     with ProcessPoolExecutor() as P:
         log.debug('simulating parallel connections')
-        P.map(ding, range(4))
+        P.map(ding, range(3))
 
 darq = Process(target=dong);    darq.start()
 
 #%%
-log.debug('entering asyncio event loop')
+log.debug('starting the relay server')
 try:
-    asyncio.run(main())
+    relay()
+except Exception as e:
+    log.exception(e)
 finally:    # only get here if lost PCAN connection, so clean up and exit with error
-    log.debug('done, closing sockets.')
-    pcan.terminate()
-    darq.terminate()
+    log.debug('done, closing processes & sockets.')
+    pcan.terminate()    
+    darq.terminate()    # child processes will be orphaned
     listener.close()
     lan2can.close()
     can2lan.close()
